@@ -57,6 +57,24 @@
   let wakeLock = null;
   let restartTimer = null;
   let fatalError = '';
+  // 받아 적기가 안 될 때 원인을 찾기 위한 기록 (몇 번 켜졌는지, 결과가 왔는지, 어떤 오류였는지)
+  let diag = { starts: 0, results: 0, errors: {} };
+  let hinted = false;
+  function diagText() {
+    const errs = Object.entries(diag.errors).map(([k, v]) => `${k}×${v}`).join(', ');
+    return `인식 시작 ${diag.starts}번 · 결과 ${diag.results}번${errs ? ` · 오류 ${errs}` : ''}${standalone ? ' · 홈 화면 앱' : ' · 브라우저'}`;
+  }
+  // 받아 적은 말이 하나도 없을 때 보여 줄 확인 순서
+  function noSpeechHelp() {
+    if (!isIOS) return '마이크 권한을 허용했는지, Chrome으로 열었는지 확인해 주세요.';
+    const steps = [];
+    const blocked = diag.errors['service-not-allowed'] || diag.errors['not-allowed'];
+    if (blocked) steps.push('설정 › 일반 › 키보드에서 "받아쓰기 활성화"를 켜고, 설정 › Safari › 마이크를 "허용"으로 바꿔 주세요.');
+    if (standalone) steps.push('홈 화면 앱에서는 음성 인식이 막히는 아이폰이 있어요. Safari에서 주소를 직접 열어 해 보세요.');
+    if (!blocked) steps.push('설정 › 일반 › 키보드 › "받아쓰기 활성화"가 켜져 있는지, 받아쓰기 언어에 한국어가 있는지 확인해 주세요.');
+    steps.push('설정 › 스크린 타임 › 콘텐츠 및 개인정보 보호 제한에서 Siri·받아쓰기가 막혀 있지 않은지 봐 주세요.');
+    return steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
+  }
 
   const fmtDur = (sec) => {
     const h = Math.floor(sec / 3600);
@@ -88,6 +106,12 @@
     box.innerHTML = '';
     for (const s of sessions) box.appendChild(el('p', null, s.text));
     if (current.trim()) box.appendChild(el('p', 'interim', current.trim()));
+    // 아직 한 마디도 못 받아 적었으면 안내를 계속 보여 준다 (인식기가 다시 켜져도 지워지지 않게)
+    if (hinted && !box.childNodes.length) {
+      const p = el('p', 'err', `아직 아무 말도 받아 적지 못했어요. 말을 해도 계속 이러면 회의를 끝내고 아래를 확인해 주세요.\n${noSpeechHelp()}`);
+      p.style.whiteSpace = 'pre-line';
+      box.appendChild(p);
+    }
     box.scrollTop = box.scrollHeight;
   }
 
@@ -116,13 +140,14 @@
     clearTimeout(restartTimer);
     if (active) return;
     rec = new SpeechRec();
-    rec.onstart = () => { active = true; };
+    rec.onstart = () => { active = true; diag.starts++; };
     rec.lang = 'ko-KR';
     rec.continuous = true;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
     rec.onresult = (e) => {
       if (!current) sessionAt = Math.round((Date.now() - startedAt) / 1000);
+      diag.results++;
       current = joinResults(e.results);
       ham.nod(); // 말이 들리면 끄덕끄덕
       renderLive();
@@ -130,12 +155,18 @@
       $('m-rec-sub').textContent = '받아 적는 중';
     };
     rec.onerror = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      const code = e.error || 'unknown';
+      diag.errors[code] = (diag.errors[code] || 0) + 1;
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
         fatalError = isIOS
-          ? '마이크·음성 인식이 막혀 있어요. 설정 › Safari › 마이크를 "허용"으로 바꾸고, 받아쓰기를 켜 주세요.'
+          ? '음성 인식이 막혀 있어요. 설정 › 일반 › 키보드에서 "받아쓰기 활성화"를 켜고, 설정 › Safari › 마이크를 "허용"으로 바꿔 주세요.'
           : '마이크 권한이 막혀 있어요. 주소창 옆 자물쇠에서 마이크를 허용해 주세요.';
-      } else if (e.error === 'audio-capture') {
+      } else if (code === 'audio-capture') {
         fatalError = '마이크를 찾을 수 없어요.';
+      } else if (code === 'language-not-supported') {
+        fatalError = '이 핸드폰에서 한국어 받아쓰기를 쓸 수 없어요. 설정 › 일반 › 키보드 › 받아쓰기 언어에 한국어를 켜 주세요.';
+      } else if ((diag.errors.network || 0) >= 3 && !diag.results) {
+        fatalError = '음성 인식 서버에 연결되지 않아요. 와이파이·데이터 연결을 확인해 주세요.';
       }
       // no-speech, network, aborted 등은 onend에서 다시 켠다
     };
@@ -192,6 +223,8 @@
     sessions = [];
     current = '';
     fatalError = '';
+    diag = { starts: 0, results: 0, errors: {} };
+    hinted = false;
     meetingId = new Date().toISOString().replace(/[:.]/g, '-');
     startedAt = Date.now();
     recording = true;
@@ -213,6 +246,13 @@
     timer = setInterval(() => {
       $('m-timer').textContent = fmtDur((Date.now() - startedAt) / 1000);
       saveLive();
+      // 12초가 지나도 받아 적은 말이 없으면 바로 알려 준다 (끝날 때까지 기다리지 않게)
+      if (!hinted && !diag.results && Date.now() - startedAt > 12000) {
+        hinted = true;
+        $('m-rec-sub').textContent = '아직 받아 적은 말이 없어요';
+        renderLive();
+        ham.say('잘 안 들려요… 아래 안내를 봐 주세요', 6000);
+      }
     }, 1000);
   });
 
@@ -250,7 +290,11 @@
     const durationSec = Math.max(1, Math.round((endedAt - st) / 1000));
     if (!transcript.trim()) {
       // 빈 회의는 목록에 남기지 않고 안내만 한다
-      return { id, startedAt: st, durationSec, transcript: '', status: 'error', error: '받아 적은 말이 없어요. 마이크와 받아쓰기 설정을 확인해 주세요.' };
+      return {
+        id, startedAt: st, durationSec, transcript: '', status: 'error',
+        // 권한이 막힌 경우는 확인 순서 1번에 이미 들어 있으니 따로 붙이지 않는다
+        error: `받아 적은 말이 없어요. 아래를 차례로 확인해 주세요.\n${fatalError && !/받아쓰기 활성화/.test(fatalError) ? `${fatalError}\n` : ''}${noSpeechHelp()}\n\n(진단: ${diagText()})`,
+      };
     }
     const minutes = window.BasicMinutes.extractBasicMinutes(transcript, { durationSec });
     const record = { id, startedAt: st, durationSec, transcript, segments: segments || [], status: 'done', minutes };
