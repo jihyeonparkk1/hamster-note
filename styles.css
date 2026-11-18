@@ -206,6 +206,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 6px 2px; font-size: 11.5px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .closet-item .ic { font-size: 20px; line-height: 1.2; }
+.closet-items { max-height: 240px; overflow-y: auto; grid-template-columns: repeat(4, 1fr); }
+.closet-items .closet-item { word-break: keep-all; text-align: center; line-height: 1.25; font-size: 11px; }
 .closet-item[aria-pressed="true"] { border-color: var(--accent); background: var(--titlebar); }
 .closet-item:disabled { opacity: 0.45; }
 
@@ -214,7 +216,70 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hamster.wear-ribbon .acc-ribbon,
 .hamster.wear-pin .acc-pin,
 .hamster.wear-glasses .acc-glasses,
-.hamster.wear-crown .acc-crown { display: inline; }
+.hamster.wear-crown .acc-crown,
+.hamster.wear-bowtie .acc-bowtie,
+.hamster.wear-scarf .acc-scarf,
+.hamster.wear-overall .acc-overall,
+.hamster.wear-flowers .acc-flowers,
+.hamster.wear-shirt .acc-shirt,
+.hamster.wear-shades .acc-shades,
+.hamster.wear-berry .acc-berry,
+.hamster.wear-lei .acc-lei,
+.hamster.wear-straw .acc-straw,
+.hamster.wear-party .acc-party,
+.hamster.wear-cape .acc-cape { display: inline; }
+.cape { fill: #e8574f; stroke: #c43d36; stroke-width: 1.5; }
+.shirt { fill: #fffaf2; }
+.shirt-stripe { stroke: #f08a7e; stroke-width: 5; fill: none; }
+.denim { fill: #6f9fd8; stroke: #4f7fb8; stroke-width: 1.2; }
+.strap { stroke: #6f9fd8; stroke-width: 6; stroke-linecap: round; fill: none; }
+.acc-overall .button { fill: #ffd34d; }
+.vine { fill: none; stroke: #6fbf73; stroke-width: 2.5; }
+.fl.pink circle, .fl-p { fill: #ff9ec3; }
+.fl.yellow circle, .fl-y { fill: #ffd84d; }
+.fl.white circle, .fl-w { fill: #ffffff; stroke: #f0dccb; stroke-width: 1; }
+.fl-c { fill: #f2a33a; }
+.berry { fill: #ef4f5f; stroke: #cf3646; stroke-width: 1.2; }
+.berry-seed { fill: #ffe27a; }
+.leaf { fill: #5cb85c; stroke: #3f9a3f; stroke-width: 1; stroke-linejoin: round; }
+.straw { fill: #f3d58a; stroke: #d9b45c; stroke-width: 1.4; }
+.hat-band { fill: #e8574f; }
+.party { fill: #8fd3ff; stroke: #5bb4ea; stroke-width: 1.2; stroke-linejoin: round; }
+.party-stripe { stroke: #ff7aa8; stroke-width: 4; fill: none; }
+.pompom { fill: #ffd84d; }
+.shades { fill: #2f2a3a; stroke: #1f1a28; stroke-width: 1.5; }
+.shine { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.8; stroke-linecap: round; fill: none; }
+.bowtie { fill: #e8574f; stroke: #c43d36; stroke-width: 1.2; stroke-linejoin: round; }
+.bowtie-knot { fill: #c43d36; }
+.scarf { fill: #ff9a3d; stroke: #e07a22; stroke-width: 1.2; stroke-linejoin: round; }
+.scarf-stripe { stroke: #fff4e0; stroke-width: 2.4; stroke-dasharray: 5 4; fill: none; }
+
+/* 옷장: 다음 꾸미기 안내, 모두 벗기 */
+.closet-title { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.closet-off { margin-left: auto; border: none; background: none; color: var(--accent-strong); font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.closet-item .slot { font-size: 9.5px; color: var(--muted); font-weight: 500; }
+
+/* ── 돌보기 ── */
+.care-btn { position: relative; }
+.care-btn.needy::after {
+  content: ''; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
+  border-radius: 50%; background: #ff5a6e; border: 1.5px solid var(--surface);
+}
+.care-bars { display: grid; gap: 5px; margin-bottom: 8px; }
+.care-bar { display: grid; grid-template-columns: 62px 1fr; align-items: center; font-size: 11.5px; font-weight: 600; }
+.care-bar .bar { height: 9px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.care-bar .bar div { height: 100%; width: 50%; background: #ffb85c; border-radius: 999px; transition: width 0.5s ease; }
+.care-bar .bar.mood div { background: #ff8fb0; }
+.care-bar .bar div.low { background: #ff6b6b; }
+.care-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.fx.food { font-size: 20px; }
+.fx.sand { width: 6px; height: 6px; border-radius: 50%; background: #e9cf9a; }
+.fx.sparkle { font-size: 14px; }
+.hamster .mouth { transform-box: fill-box; transform-origin: center; }
+.hamster.munch .mouth { animation: munch 0.22s ease-in-out 6; }
+@keyframes munch { 50% { transform: translateY(1.5px) scaleY(0.4); } }
+.hamster.bath .body-group { animation: roll 1.2s ease-in-out; }
+@keyframes roll { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg) translateX(-6px); } 45% { transform: rotate(12deg) translateX(6px); } 70% { transform: rotate(-8deg); } }
 .ribbon { fill: #ff7aa8; }
 .ribbon-knot { fill: #e85a8c; }
 .petals circle { fill: #ffc933; }

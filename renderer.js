@@ -153,17 +153,42 @@
   }
 
   // ── 해바라기씨 모으기 · 꾸미기 ──
+  // 해바라기씨 10개마다 하나씩 열림. 자리(slot)가 다르면 같이 입을 수 있다
+  // (예전부터 있던 리본 10·핀 30·안경 50·왕관 100은 그대로)
+  const SLOTS = { head: '머리', face: '얼굴', neck: '목', body: '옷', back: '등' };
   const OUTFITS = [
-    { id: 'ribbon', icon: '🎀', name: '리본', need: 10 },
-    { id: 'pin', icon: '🌻', name: '해바라기 핀', need: 30 },
-    { id: 'glasses', icon: '👓', name: '안경', need: 50 },
-    { id: 'crown', icon: '👑', name: '왕관', need: 100 },
+    { id: 'ribbon', icon: '🎀', name: '리본', need: 10, slot: 'head' },
+    { id: 'bowtie', icon: '🦋', name: '나비넥타이', need: 20, slot: 'neck' },
+    { id: 'pin', icon: '🌻', name: '해바라기 핀', need: 30, slot: 'head' },
+    { id: 'scarf', icon: '🧣', name: '목도리', need: 40, slot: 'neck' },
+    { id: 'glasses', icon: '👓', name: '안경', need: 50, slot: 'face' },
+    { id: 'overall', icon: '👖', name: '멜빵바지', need: 60, slot: 'body' },
+    { id: 'flowers', icon: '🌸', name: '꽃 화관', need: 70, slot: 'head' },
+    { id: 'shirt', icon: '👕', name: '줄무늬 티', need: 80, slot: 'body' },
+    { id: 'shades', icon: '🕶️', name: '선글라스', need: 90, slot: 'face' },
+    { id: 'crown', icon: '👑', name: '왕관', need: 100, slot: 'head' },
+    { id: 'berry', icon: '🍓', name: '딸기 모자', need: 110, slot: 'head' },
+    { id: 'lei', icon: '🌺', name: '꽃 목걸이', need: 120, slot: 'neck' },
+    { id: 'straw', icon: '👒', name: '밀짚모자', need: 130, slot: 'head' },
+    { id: 'party', icon: '🥳', name: '파티 모자', need: 140, slot: 'head' },
+    { id: 'cape', icon: '🦸', name: '망토', need: 150, slot: 'back' },
   ];
   const seeds = () => state.settings.seeds || 0;
+  // 입은 것: { head: 'ribbon', neck: 'scarf', ... } (예전 저장값 outfit 하나도 받아 준다)
+  function wearing() {
+    if (!state.settings.wear || typeof state.settings.wear !== 'object') {
+      const old = OUTFITS.find((x) => x.id === state.settings.outfit);
+      state.settings.wear = old ? { [old.slot]: old.id } : {};
+      delete state.settings.outfit;
+    }
+    return state.settings.wear;
+  }
   function applyOutfit() {
     for (const o of OUTFITS) hamster.classList.remove(`wear-${o.id}`);
-    const o = OUTFITS.find((x) => x.id === state.settings.outfit);
-    if (o && seeds() >= o.need) hamster.classList.add(`wear-${o.id}`);
+    for (const id of Object.values(wearing())) {
+      const o = OUTFITS.find((x) => x.id === id);
+      if (o && seeds() >= o.need) hamster.classList.add(`wear-${o.id}`);
+    }
     const btn = $('seed-count');
     if (btn) btn.textContent = `🌻 ${seeds()}`;
   }
@@ -171,24 +196,39 @@
     const box = $('closet-items');
     if (!box) return;
     box.innerHTML = '';
-    for (const o of [{ id: null, icon: '🐹', name: '없음', need: 0 }, ...OUTFITS]) {
+    const wear = wearing();
+    const next = OUTFITS.find((o) => seeds() < o.need);
+    const nextEl = $('closet-next');
+    if (nextEl) nextEl.textContent = next ? `씨앗 ${next.need - seeds()}개 더 모으면 ${next.icon} ${next.name}` : '꾸미기를 전부 모았어요! 🎉';
+    for (const o of OUTFITS) {
       const b = document.createElement('button');
       b.className = 'closet-item';
       const locked = seeds() < o.need;
+      const on = wear[o.slot] === o.id;
       b.disabled = locked;
-      b.setAttribute('aria-pressed', String((state.settings.outfit || null) === o.id));
-      b.innerHTML = `<span class="ic">${locked ? '🔒' : o.icon}</span><span>${locked ? `씨앗 ${o.need}` : o.name}</span>`;
+      b.title = locked ? `해바라기씨 ${o.need}개를 모으면 열려요` : on ? '눌러서 벗기' : `${SLOTS[o.slot]}에 입히기`;
+      b.setAttribute('aria-pressed', String(on));
+      b.innerHTML = `<span class="ic">${locked ? '🔒' : o.icon}</span><span>${locked ? `씨앗 ${o.need}` : o.name}</span><span class="slot">${SLOTS[o.slot]}</span>`;
       b.addEventListener('click', () => {
-        state.settings.outfit = o.id;
+        if (on) delete wear[o.slot];
+        else wear[o.slot] = o.id; // 같은 자리에 입던 건 자동으로 벗음
         applyOutfit();
         renderCloset();
         scheduleSave();
         act('hop', 600);
-        say(o.id ? `${o.name} 어때요? 예쁘죠!` : '역시 그냥 콩이가 최고죠');
+        say(on ? `${o.name} 벗었어요` : pick([`${o.name} 어때요? 예쁘죠!`, `${o.name} 잘 어울려요?`, `짠! ${o.name}!`]));
       });
       box.appendChild(b);
     }
   }
+  $('closet-off')?.addEventListener('click', () => {
+    state.settings.wear = {};
+    applyOutfit();
+    renderCloset();
+    scheduleSave();
+    act('wiggle', 500);
+    say('역시 그냥 콩이가 최고죠');
+  });
   // 할 일을 처음 끝낼 때만 씨앗 1개 (다시 체크해도 또 받지 않음)
   function awardSeed(note) {
     if (note.seeded) return null;
@@ -391,12 +431,25 @@
       stick.className = 'del stick' + (n.sticky ? ' on' : '');
       stick.title = n.sticky ? '바탕화면에서 떼기' : '바탕화면에 스티커로 붙이기';
       stick.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z" fill="currentColor"/></svg>';
-      stick.addEventListener('click', () => {
-        n.sticky = n.sticky ? null : {};
+      const setSticky = (on) => {
+        n.sticky = on ? {} : null;
         render();
         scheduleSave();
         act('hop', 600);
         say(n.sticky ? '바탕화면에 붙여 뒀어요!' : '떼어서 볼주머니에 넣었어요');
+      };
+      stick.addEventListener('click', () => setSticky(!n.sticky));
+      // 마우스 오른쪽 버튼 메뉴
+      el.addEventListener('contextmenu', async (ev) => {
+        ev.preventDefault();
+        const choice = await window.api.noteMenu({ sticky: !!n.sticky, done: !!n.done });
+        if (choice === 'stick') setSticky(true);
+        else if (choice === 'unstick') setSticky(false);
+        else if (choice === 'show') stickyApi.focus(n.id);
+        else if (choice === 'done') toggleDone(n.id);
+        else if (choice === 'edit') startEdit(text, n.id);
+        else if (choice === 'copy') { window.api.copy(n.text); say('글을 복사했어요!'); }
+        else if (choice === 'delete') removeNote(n.id);
       });
       el.append(check, body, stick, del);
     } else {
@@ -580,8 +633,110 @@
   $('seed-count')?.addEventListener('click', () => {
     const closet = $('closet');
     closet.hidden = !closet.hidden;
-    if (!closet.hidden) renderCloset();
+    if (!closet.hidden) { renderCloset(); $('care').hidden = true; }
   });
+
+  // ── 돌보기: 밥·간식·물·모래 목욕 ──
+  // 배부름은 반나절, 기분은 하루쯤 지나면 바닥 근처까지 내려간다 (0 밑으론 안 감, 아프거나 떠나지 않음)
+  const CARE_FLOOR = 5;
+  function care() {
+    const now = Date.now();
+    let c = state.settings.care;
+    if (!c || typeof c.full !== 'number') c = state.settings.care = { full: 70, mood: 70, at: now, snacks: [], bathAt: 0 };
+    const hours = Math.max(0, (now - (c.at || now)) / 3_600_000);
+    if (hours > 0) {
+      c.full = Math.max(CARE_FLOOR, c.full - hours * 8);
+      c.mood = Math.max(CARE_FLOOR, c.mood - hours * 4);
+      c.at = now;
+    }
+    c.snacks = (c.snacks || []).filter((t) => now - t < 3_600_000);
+    return c;
+  }
+  function renderCare() {
+    const c = care();
+    for (const [id, v] of [['bar-full', c.full], ['bar-mood', c.mood]]) {
+      const el = $(id);
+      if (!el) continue;
+      el.style.width = `${Math.round(v)}%`;
+      el.classList.toggle('low', v < 30);
+    }
+    $('care-btn')?.classList.toggle('needy', c.full < 30);
+  }
+  const SNACKS = [
+    { icon: '🌻', name: '해바라기씨', line: '해바라기씨다! 제일 좋아해요!!', love: true },
+    { icon: '🍓', name: '딸기', line: '새콤달콤 딸기 냠냠' },
+    { icon: '🥕', name: '당근', line: '오독오독 당근 맛있어요' },
+    { icon: '🥦', name: '브로콜리', line: '브로콜리… 몸에 좋은 거죠? 냠' },
+    { icon: '🍎', name: '사과', line: '아삭아삭 사과 최고!' },
+    { icon: '🧀', name: '치즈', line: '치즈 한 조각… 행복해요' },
+    { icon: '🌽', name: '옥수수', line: '옥수수 알알이 냠냠' },
+  ];
+  // 아래에서 콩이 입으로 날아오는 음식
+  function feedFly(icon) {
+    const h = hero.getBoundingClientRect();
+    const to = pointOf(hamster, 0.5, 0.6);
+    return fly(`<span>${icon}</span>`, 'food', { x: h.width / 2 + rand(-50, 50), y: h.height }, to, { duration: 650, arc: 40, scaleTo: 0.5 });
+  }
+  async function munch(icon, line) {
+    await feedFly(icon);
+    act('munch', 1400);
+    act('puff', 900);
+    say(line, 3500);
+  }
+  async function doCare(kind) {
+    const c = care();
+    stayAwake();
+    if (kind === 'meal') {
+      if (c.full >= 90) { act('wiggle', 500); say(pick(['배불러요! 이따가 주세요', '배 빵빵해요… 나중에 먹을게요'])); return; }
+      c.full = Math.min(100, c.full + 45);
+      c.mood = Math.min(100, c.mood + 5);
+      renderCare();
+      await munch('🥣', pick(['밥이다! 잘 먹겠습니다!', '우물우물… 든든해요', '밥 최고! 고마워요']));
+      hearts(1);
+    } else if (kind === 'snack') {
+      if (c.snacks.length >= 4) { act('wiggle', 500); say(pick(['간식은 이따가요… 배불러요', '간식 너무 많이 먹으면 뚱뚱해져요!'])); return; }
+      const s = pick(SNACKS);
+      c.snacks.push(Date.now());
+      c.full = Math.min(100, c.full + 10);
+      c.mood = Math.min(100, c.mood + (s.love ? 25 : 15));
+      renderCare();
+      await munch(s.icon, s.line);
+      act('happy', 1200);
+      hearts(s.love ? 4 : 2);
+      if (s.love) act('hop', 600);
+    } else if (kind === 'water') {
+      c.full = Math.min(100, c.full + 5);
+      c.mood = Math.min(100, c.mood + 5);
+      renderCare();
+      await feedFly('💧');
+      act('munch', 900);
+      say(pick(['꿀꺽꿀꺽, 시원해요!', '물 맛있다~', '목이 말랐는데 고마워요']));
+    } else if (kind === 'bath') {
+      if (Date.now() - (c.bathAt || 0) < 2 * 3_600_000) { say('아까 했어요! 벌써 보송보송해요'); act('hop', 600); return; }
+      c.bathAt = Date.now();
+      c.mood = Math.min(100, c.mood + 20);
+      renderCare();
+      act('bath', 1200);
+      const base = pointOf(hamster, 0.5, 0.9);
+      for (let i = 0; i < 12; i++) {
+        fly('', 'sand', base, { x: base.x + rand(-90, 90), y: base.y - rand(10, 60) }, { duration: rand(500, 900), delay: i * 50, arc: 20 });
+      }
+      say('데굴데굴~ 모래 목욕 중!', 1600);
+      setTimeout(() => {
+        const top = pointOf(hamster, 0.5, 0.35);
+        for (let i = 0; i < 4; i++) fly('✨', 'sparkle', { x: top.x + rand(-50, 50), y: top.y + rand(-10, 30) }, { x: top.x + rand(-70, 70), y: top.y - rand(20, 50) }, { duration: 900, delay: i * 100 });
+        say('보송보송해졌어요! ✨');
+      }, 1300);
+    }
+    scheduleSave();
+  }
+  document.querySelectorAll('[data-care]').forEach((b) => b.addEventListener('click', () => doCare(b.dataset.care)));
+  $('care-btn')?.addEventListener('click', () => {
+    const box = $('care');
+    box.hidden = !box.hidden;
+    if (!box.hidden) { renderCare(); $('closet').hidden = true; }
+  });
+  setInterval(renderCare, 60 * 1000);
 
   document.querySelectorAll('.tab').forEach((t) =>
     t.addEventListener('click', () => {
@@ -652,7 +807,9 @@
   // 가끔 혼잣말 (메모 쓰는 중엔 조용히)
   setInterval(() => {
     if (document.activeElement === input || document.hidden) return;
-    if (Math.random() < 0.5) say(pick(LINES[timeOfDay()]));
+    if (Math.random() >= 0.5) return;
+    if (!hamster.classList.contains('sleepy') && care().full < 30 && Math.random() < 0.4) say(pick(['배고파요… 밥 주세요 🥺', '꼬르륵… 🍽 눌러서 밥 주세요']));
+    else say(pick(LINES[timeOfDay()]));
   }, 90_000);
 
   // 회의록 화면에서 쓰는 햄스터·메모 기능
@@ -703,6 +860,7 @@
     renderColors();
     render();
     updateSleep();
+    renderCare();
     const open = state.notes.filter((n) => !n.done).length;
     const urgent = state.notes.filter((n) => !n.done && dueToday(n)).length;
     if (hamster.classList.contains('sleepy')) say('쿨쿨… (눌러서 깨워 주세요)', 4000);

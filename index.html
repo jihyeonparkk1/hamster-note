@@ -36,8 +36,11 @@
     <div class="zzz" aria-hidden="true"><span>Z</span><span>z</span><span>z</span></div>
     <button class="hamster-btn" id="hamster" title="콩이를 쓰다듬기" aria-label="햄스터 콩이">
       <svg class="hamster" viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg">
+        <defs><clipPath id="hm-body"><ellipse cx="100" cy="100" rx="66" ry="56" /></clipPath></defs>
         <ellipse class="shadow" cx="100" cy="158" rx="58" ry="8" />
         <g class="body-group">
+          <!-- 등: 망토 (몸 뒤에 보임) -->
+          <g class="acc acc-cape"><path d="M60 66 Q34 110 16 160 Q100 172 184 160 Q166 110 140 66 Z" class="cape" /></g>
           <!-- 귀 -->
           <g class="ear ear-l"><circle cx="56" cy="50" r="17" class="fur" /><circle cx="56" cy="50" r="10" class="ear-in" /></g>
           <g class="ear ear-r"><circle cx="144" cy="50" r="17" class="fur" /><circle cx="144" cy="50" r="10" class="ear-in" /></g>
@@ -45,6 +48,17 @@
           <ellipse cx="100" cy="100" rx="66" ry="56" class="fur" />
           <path d="M60 62 Q100 40 140 62 Q122 52 100 52 Q78 52 60 62Z" class="fur-dark" />
           <ellipse cx="100" cy="122" rx="40" ry="32" class="belly" />
+          <!-- 옷 (몸 모양으로 잘림) -->
+          <g class="acc acc-shirt" clip-path="url(#hm-body)">
+            <rect x="30" y="110" width="140" height="60" class="shirt" />
+            <path d="M30 122 L170 122 M30 135 L170 135 M30 148 L170 148" class="shirt-stripe" />
+          </g>
+          <g class="acc acc-overall" clip-path="url(#hm-body)">
+            <path d="M84 113 L72 92 M116 113 L128 92" class="strap" />
+            <path d="M30 132 Q100 124 170 132 L170 170 L30 170 Z" class="denim" />
+            <rect x="82" y="111" width="36" height="24" rx="4" class="denim" />
+            <circle cx="86" cy="115" r="2.6" class="button" /><circle cx="114" cy="115" r="2.6" class="button" />
+          </g>
           <!-- 볼주머니 -->
           <g class="cheek cheek-l"><ellipse cx="60" cy="102" rx="17" ry="15" class="cheek-fill" /><ellipse cx="58" cy="104" rx="8" ry="5" class="blush" /></g>
           <g class="cheek cheek-r"><ellipse cx="140" cy="102" rx="17" ry="15" class="cheek-fill" /><ellipse cx="142" cy="104" rx="8" ry="5" class="blush" /></g>
@@ -76,6 +90,52 @@
             <path d="M80 50 L80 30 L90 40 L100 24 L110 40 L120 30 L120 50 Z" class="crown" />
             <circle cx="100" cy="42" r="3" class="gem" /><circle cx="87" cy="45" r="2.2" class="gem blue" /><circle cx="113" cy="45" r="2.2" class="gem blue" />
           </g>
+          <g class="acc acc-flowers">
+            <path d="M66 58 Q100 34 134 58" class="vine" />
+            <g class="fl pink"><circle cx="68" cy="56" r="5.5" /></g><g class="fl yellow"><circle cx="80" cy="49" r="5.5" /></g>
+            <g class="fl white"><circle cx="92" cy="45" r="5.5" /></g><g class="fl pink"><circle cx="104" cy="44" r="5.5" /></g>
+            <g class="fl yellow"><circle cx="116" cy="47" r="5.5" /></g><g class="fl white"><circle cx="127" cy="52" r="5.5" /></g>
+            <circle cx="68" cy="56" r="2" class="fl-c" /><circle cx="80" cy="49" r="2" class="fl-c" /><circle cx="92" cy="45" r="2" class="fl-c" />
+            <circle cx="104" cy="44" r="2" class="fl-c" /><circle cx="116" cy="47" r="2" class="fl-c" /><circle cx="127" cy="52" r="2" class="fl-c" />
+          </g>
+          <g class="acc acc-berry">
+            <path d="M72 56 Q70 22 100 20 Q130 22 128 56 Q100 47 72 56 Z" class="berry" />
+            <ellipse cx="86" cy="36" rx="1.6" ry="2.4" class="berry-seed" /><ellipse cx="100" cy="31" rx="1.6" ry="2.4" class="berry-seed" />
+            <ellipse cx="114" cy="36" rx="1.6" ry="2.4" class="berry-seed" /><ellipse cx="92" cy="45" rx="1.6" ry="2.4" class="berry-seed" />
+            <ellipse cx="108" cy="45" rx="1.6" ry="2.4" class="berry-seed" /><ellipse cx="80" cy="47" rx="1.6" ry="2.4" class="berry-seed" />
+            <ellipse cx="120" cy="47" rx="1.6" ry="2.4" class="berry-seed" />
+            <path d="M100 23 L88 15 L97 18 L100 8 L103 18 L112 15 Z" class="leaf" />
+          </g>
+          <g class="acc acc-straw">
+            <ellipse cx="100" cy="51" rx="47" ry="9" class="straw" />
+            <path d="M78 51 Q77 24 100 24 Q123 24 122 51 Z" class="straw" />
+            <path d="M78.3 43 L121.7 43 L122 51 L78 51 Z" class="hat-band" />
+          </g>
+          <g class="acc acc-party" transform="rotate(14 100 50)">
+            <path d="M86 52 L100 12 L114 52 Z" class="party" />
+            <path d="M90.2 40 L109.8 40 M94.4 28 L105.6 28" class="party-stripe" />
+            <circle cx="100" cy="11" r="5" class="pompom" />
+          </g>
+          <g class="acc acc-shades">
+            <ellipse cx="80" cy="80" rx="12.5" ry="9.5" class="shades" /><ellipse cx="120" cy="80" rx="12.5" ry="9.5" class="shades" />
+            <path d="M92 78 Q100 74 108 78 M68 77 L58 73 M132 77 L142 73" class="frame" />
+            <path d="M73 77 L78 74 M113 77 L118 74" class="shine" />
+          </g>
+          <!-- 목 -->
+          <g class="acc acc-bowtie">
+            <path d="M100 114 L83 105 L83 123 Z M100 114 L117 105 L117 123 Z" class="bowtie" />
+            <circle cx="100" cy="114" r="4.5" class="bowtie-knot" />
+          </g>
+          <g class="acc acc-scarf">
+            <path d="M64 106 Q100 122 136 106 L138 116 Q100 132 62 116 Z" class="scarf" />
+            <path d="M118 120 L126 148 L137 144 L130 116 Z" class="scarf" />
+            <path d="M64 111 Q100 127 136 111 M121 128 L133 125 M124 138 L135 134" class="scarf-stripe" />
+          </g>
+          <g class="acc acc-lei">
+            <circle cx="68" cy="108" r="4.6" class="fl-p" /><circle cx="76" cy="113" r="4.6" class="fl-y" /><circle cx="84" cy="117" r="4.6" class="fl-w" />
+            <circle cx="92" cy="119" r="4.6" class="fl-p" /><circle cx="100" cy="120" r="4.6" class="fl-y" /><circle cx="108" cy="119" r="4.6" class="fl-w" />
+            <circle cx="116" cy="117" r="4.6" class="fl-p" /><circle cx="124" cy="113" r="4.6" class="fl-y" /><circle cx="132" cy="108" r="4.6" class="fl-w" />
+          </g>
           <!-- 앞발과 해바라기씨 (기한이 오늘인 일이 있으면 메모지를 든다) -->
           <g class="seed"><ellipse cx="100" cy="124" rx="7" ry="11" class="seed-shell" /><path d="M100 115 L100 133" class="seed-line" /></g>
           <g class="memo-paper">
@@ -94,10 +154,25 @@
     <div class="pouch-row">
       <span class="pouch-count" id="pouch-count">볼주머니 0개</span>
       <button class="seed-count" id="seed-count" title="모은 해바라기씨 · 눌러서 꾸미기">🌻 0</button>
+      <button class="seed-count care-btn" id="care-btn" title="밥·간식 주기">🍽 돌보기</button>
     </div>
     <div class="closet" id="closet" hidden>
-      <div class="closet-title">콩이 꾸미기 <span class="m-sub">할 일을 끝내면 해바라기씨가 모여요</span></div>
+      <div class="closet-title">콩이 꾸미기 <span class="m-sub" id="closet-next">할 일을 끝내면 해바라기씨가 모여요</span>
+        <button class="closet-off" id="closet-off" title="입은 것 모두 벗기">모두 벗기</button></div>
       <div class="closet-items" id="closet-items"></div>
+    </div>
+    <div class="closet care" id="care" hidden>
+      <div class="closet-title">콩이 돌보기 <span class="m-sub">배고프지 않게 챙겨 주세요</span></div>
+      <div class="care-bars">
+        <div class="care-bar"><span>🍚 배부름</span><div class="bar"><div id="bar-full"></div></div></div>
+        <div class="care-bar"><span>💗 기분</span><div class="bar mood"><div id="bar-mood"></div></div></div>
+      </div>
+      <div class="care-actions">
+        <button class="closet-item" data-care="meal"><span class="ic">🍚</span><span>밥 주기</span></button>
+        <button class="closet-item" data-care="snack"><span class="ic">🍓</span><span>간식 주기</span></button>
+        <button class="closet-item" data-care="water"><span class="ic">💧</span><span>물 주기</span></button>
+        <button class="closet-item" data-care="bath"><span class="ic">✨</span><span>모래 목욕</span></button>
+      </div>
     </div>
   </section>
 
