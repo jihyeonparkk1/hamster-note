@@ -353,17 +353,23 @@
     listening: (on) => hamster.classList.toggle('listening', !!on),
     addNoteText(text, color = 'peach') {
       text = String(text || '').trim();
-      if (!text) return;
-      state.notes.unshift({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        text,
-        color,
-        done: false,
-        createdAt: Date.now(),
-      });
+      if (!text) return null;
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      state.notes.unshift({ id, text, color, done: false, createdAt: Date.now() });
       render();
       scheduleSave();
       act('puff', 900);
+      return id;
+    },
+    // 회의록을 고치면 메모장에 넣어 둔 요약도 같이 바뀐다 (메모를 지웠으면 다시 만들지 않음)
+    updateNoteText(id, text) {
+      const n = state.notes.find((x) => x.id === id);
+      if (!n) return false;
+      n.text = String(text || '').trim() || n.text;
+      n.editedAt = Date.now();
+      render();
+      scheduleSave();
+      return true;
     },
   };
 

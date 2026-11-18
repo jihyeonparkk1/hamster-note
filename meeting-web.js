@@ -67,19 +67,26 @@
     return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   };
 
+  // sessions: [{t: 회의 시작부터 몇 초, text}] — 엑셀 "원문" 시트의 시각으로 쓴다
+  let sessionAt = 0;
+  function segmentsSoFar() {
+    const segs = sessions.slice();
+    if (current.trim()) segs.push({ t: sessionAt, text: current.trim() });
+    return segs;
+  }
   function transcriptSoFar() {
-    return [...sessions, current].map((s) => s.trim()).filter(Boolean).join('\n');
+    return segmentsSoFar().map((s) => s.text).join('\n');
   }
 
   function saveLive() {
     if (!recording) return;
-    store.set(LIVE_KEY, { id: meetingId, startedAt, transcript: transcriptSoFar(), savedAt: Date.now() });
+    store.set(LIVE_KEY, { id: meetingId, startedAt, transcript: transcriptSoFar(), segments: segmentsSoFar(), savedAt: Date.now() });
   }
 
   function renderLive() {
     const box = $('m-live-text');
     box.innerHTML = '';
-    for (const s of sessions) if (s.trim()) box.appendChild(el('p', null, s.trim()));
+    for (const s of sessions) box.appendChild(el('p', null, s.text));
     if (current.trim()) box.appendChild(el('p', 'interim', current.trim()));
     box.scrollTop = box.scrollHeight;
   }
@@ -99,7 +106,7 @@
   }
 
   function commitCurrent() {
-    if (current.trim()) sessions.push(current.trim());
+    if (current.trim()) sessions.push({ t: sessionAt, text: current.trim() });
     current = '';
   }
 
@@ -115,6 +122,7 @@
     rec.interimResults = true;
     rec.maxAlternatives = 1;
     rec.onresult = (e) => {
+      if (!current) sessionAt = Math.round((Date.now() - startedAt) / 1000);
       current = joinResults(e.results);
       renderLive();
       saveLive();
@@ -221,7 +229,7 @@
     ham.listening(false);
     showState('idle');
     $('m-live').hidden = true;
-    const result = finishMeeting({ id: meetingId, startedAt, transcript: transcriptSoFar(), endedAt: Date.now() });
+    const result = finishMeeting({ id: meetingId, startedAt, transcript: transcriptSoFar(), segments: segmentsSoFar(), endedAt: Date.now() });
     store.del(LIVE_KEY);
     renderResult(result);
     loadList();
@@ -233,16 +241,16 @@
   }
 
   // 정리해서 저장하고, 회의록 요약을 메모장(볼주머니)에 한 장 남긴다
-  function finishMeeting({ id, startedAt: st, transcript, endedAt }) {
+  function finishMeeting({ id, startedAt: st, transcript, segments, endedAt }) {
     const durationSec = Math.max(1, Math.round((endedAt - st) / 1000));
     if (!transcript.trim()) {
       // 빈 회의는 목록에 남기지 않고 안내만 한다
       return { id, startedAt: st, durationSec, transcript: '', status: 'error', error: '받아 적은 말이 없어요. 마이크와 받아쓰기 설정을 확인해 주세요.' };
     }
     const minutes = window.BasicMinutes.extractBasicMinutes(transcript, { durationSec });
-    const record = { id, startedAt: st, durationSec, transcript, status: 'done', minutes };
+    const record = { id, startedAt: st, durationSec, transcript, segments: segments || [], status: 'done', minutes };
+    record.noteId = ham.addNoteText(toNoteText(record), 'lilac');
     saveMeeting(record);
-    ham.addNoteText(toNoteText(record), 'lilac');
     return record;
   }
 
@@ -260,7 +268,7 @@
     }, 500);
   }
 
-  // ── 결과 ──
+  // ── 결과 화면 ──
   function el(tag, cls, text) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -268,9 +276,27 @@
     return e;
   }
   const when = (t) => new Date(t).toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  const ymd = (t) => {
+    const d = new Date(t);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   // 문장에 이미 들어 있는 담당자·기한은 다시 붙이지 않는다
   const actionText = (a) =>
     `${a.task}${a.owner && !a.task.includes(a.owner) ? ` (${a.owner})` : ''}${a.due && !a.task.includes(a.due) ? ` ~${a.due}` : ''}`;
+
+  // 칸 이름 ↔ 데이터
+  const CATS = [
+    { key: 'decisions', label: '결정사항', short: '결정' },
+    { key: 'action_items', label: '할 일', short: '할 일' },
+    { key: 'open_questions', label: '확인 필요', short: '확인' },
+    { key: 'key_points', label: '주요 내용', short: '주요' },
+    { key: 'others', label: '기타 내용', short: '기타' },
+  ];
+  const itemText = (key, it) => (key === 'action_items' ? it.task : it);
+  function toItem(key, text) {
+    if (key !== 'action_items') return text;
+    return { task: text, owner: window.BasicMinutes.findOwner(text), due: window.BasicMinutes.findDue(text) };
+  }
 
   function toNoteText(m) {
     const mm = m.minutes;
@@ -278,7 +304,7 @@
     if (mm.decisions.length) lines.push('결정: ' + mm.decisions.join(' / '));
     if (mm.action_items.length) lines.push('할 일: ' + mm.action_items.map(actionText).join(' / '));
     if (mm.open_questions.length) lines.push('확인 필요: ' + mm.open_questions.join(' / '));
-    if (lines.length === 1) lines.push(mm.key_points.slice(0, 2).join(' / ') || mm.summary);
+    if (lines.length === 1) lines.push((mm.key_points || []).slice(0, 2).join(' / ') || mm.summary);
     return lines.join('\n');
   }
 
@@ -289,30 +315,263 @@
       `# ${mm.title}`,
       `${when(m.startedAt)} · ${fmtDur(m.durationSec || 0)}`,
       '',
+      mm.summary,
+      '',
       '## 결정사항', list(mm.decisions),
       '',
       '## 할 일', list(mm.action_items.map(actionText)),
       '',
       '## 확인 필요', list(mm.open_questions),
       '',
-      '## 주요 내용', list(mm.key_points),
+      '## 주요 내용', list(mm.key_points || []),
     ].join('\n');
   }
 
-  function section(title, items, render) {
-    const s = el('div', 'm-sec');
-    s.appendChild(el('div', 'm-sec-title', `${title} ${items.length}`));
+  // 고친 내용을 저장하고 메모장 요약도 맞춘다
+  function commitEdit(m) {
+    m.editedAt = Date.now();
+    saveMeeting(m);
+    if (m.noteId) ham.updateNoteText(m.noteId, toNoteText(m));
+    renderResult(m, { keepScroll: true });
+    loadList();
+  }
+
+  // 문장을 누르면 나오는 "옮기기" 줄
+  function moveMenu(m, fromKey, index) {
+    const bar = el('div', 'm-move');
+    for (const c of CATS) {
+      if (c.key === fromKey) continue;
+      const b = el('button', 'tiny-btn', c.short);
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const [it] = m.minutes[fromKey].splice(index, 1);
+        (m.minutes[c.key] = m.minutes[c.key] || []).push(toItem(c.key, itemText(fromKey, it)));
+        ham.say(`${c.label}(으)로 옮겼어요`);
+        commitEdit(m);
+      });
+      bar.appendChild(b);
+    }
+    const del = el('button', 'tiny-btn danger', '빼기');
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      m.minutes[fromKey].splice(index, 1);
+      commitEdit(m);
+    });
+    bar.appendChild(del);
+    return bar;
+  }
+
+  function section(m, cat, { collapsed = false } = {}) {
+    const items = m.minutes[cat.key] || [];
+    const s = el(collapsed ? 'details' : 'div', 'm-sec');
+    const title = el(collapsed ? 'summary' : 'div', 'm-sec-title', `${cat.label} ${items.length}`);
+    s.appendChild(title);
     if (!items.length) {
       s.appendChild(el('div', 'm-empty', '없음'));
       return s;
     }
     const ul = el('ul');
-    for (const it of items) ul.appendChild(render(it));
+    items.forEach((it, i) => {
+      const li = el('li', cat.key === 'action_items' ? 'm-action m-item-edit' : 'm-item-edit');
+      const body = el('div', 'm-action-body');
+      body.appendChild(el('span', null, itemText(cat.key, it)));
+      if (cat.key === 'action_items') {
+        if (it.owner) body.appendChild(el('span', 'chip', it.owner));
+        if (it.due) body.appendChild(el('span', 'chip due', it.due));
+      }
+      li.appendChild(body);
+      if (cat.key === 'action_items') {
+        const add = el('button', 'tiny-btn', '메모로');
+        add.title = '할 일 하나를 따로 메모로 넣기';
+        add.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ham.addNoteText(actionText(it));
+          add.textContent = '넣음';
+          add.disabled = true;
+          ham.say('할 일을 볼주머니에 쏙!');
+        });
+        li.appendChild(add);
+      }
+      // 누르면 옮기기 줄을 열고 닫는다
+      li.addEventListener('click', () => {
+        const open = li.nextElementSibling && li.nextElementSibling.classList.contains('m-move');
+        ul.querySelectorAll('.m-move').forEach((x) => x.remove());
+        if (!open) li.after(moveMenu(m, cat.key, i));
+      });
+      ul.appendChild(li);
+    });
     s.appendChild(ul);
     return s;
   }
 
-  function renderResult(m) {
+  // ── AI 앱(제미나이 등)으로 정리 맡기기 ──
+  function aiPrompt(m) {
+    return [
+      '아래는 회의를 핸드폰 음성 인식으로 받아 적은 글이야. 오타나 잘못 들린 말, 문장부호 없음이 섞여 있어.',
+      '내용을 이해해서 회의록으로 정리해 줘. 말하지 않은 내용은 지어내지 말고, 담당·기한은 회의에서 말한 경우에만 적어.',
+      '답은 다른 설명 없이 꼭 아래 형식 그대로 써 줘. (표를 그대로 복사해서 앱에 붙여 넣을 거야)',
+      '',
+      '제목: (20자 이내)',
+      '요약: (2~3문장)',
+      '| 구분 | 내용 | 담당 | 기한 |',
+      '|---|---|---|---|',
+      '| 결정 | (정해진 것) | | |',
+      '| 할 일 | (해야 할 일) | (사람) | (기한) |',
+      '| 확인 필요 | (결론이 안 났거나 확인할 것) | | |',
+      '| 주요 내용 | (중요한 논의) | | |',
+      '',
+      `[회의 정보] ${when(m.startedAt)}, 약 ${Math.max(1, Math.round((m.durationSec || 0) / 60))}분`,
+      '[받아 적은 글]',
+      m.transcript,
+    ].join('\n');
+  }
+
+  // AI 답(표 또는 탭으로 나뉜 줄)을 읽어 회의록으로 바꾼다
+  function parseAiAnswer(text) {
+    const out = { method: 'ai', title: '', summary: '', decisions: [], action_items: [], open_questions: [], key_points: [], others: [] };
+    const norm = (s) => s.replace(/\*\*/g, '').trim();
+    const pick = (cat) => {
+      const c = cat.replace(/\s/g, '');
+      if (/결정/.test(c)) return 'decisions';
+      if (/할일|할것|액션|조치|담당업무|todo/i.test(c)) return 'action_items';
+      if (/확인|질문|미정|보류|이슈/.test(c)) return 'open_questions';
+      if (/주요|논의|내용|요점|참고/.test(c)) return 'key_points';
+      return null;
+    };
+    for (const raw of String(text || '').split(/\r?\n/)) {
+      const line = norm(raw);
+      if (!line) continue;
+      const t = line.match(/^#*\s*제목\s*[:：]\s*(.+)$/);
+      if (t) { out.title = t[1].trim(); continue; }
+      const s = line.match(/^#*\s*요약\s*[:：]\s*(.+)$/);
+      if (s) { out.summary = s[1].trim(); continue; }
+      let cells = null;
+      if (line.includes('|')) cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((x) => norm(x));
+      else if (line.includes('\t')) cells = line.split('\t').map((x) => norm(x));
+      if (!cells || cells.length < 2) continue;
+      if (/^:?-{2,}:?$/.test(cells[0]) || cells[0] === '구분') continue; // 구분선·머리줄
+      const key = pick(cells[0]);
+      const body = cells[1];
+      if (!key || !body || body === '-' || /^\(.*\)$/.test(body)) continue;
+      const blank = (v) => (!v || v === '-' || v === '없음' || /^\(.*\)$/.test(v) ? null : v);
+      if (key === 'action_items') out.action_items.push({ task: body, owner: blank(cells[2]), due: blank(cells[3]) });
+      else out[key].push(body);
+    }
+    const n = out.decisions.length + out.action_items.length + out.open_questions.length + out.key_points.length;
+    return n ? out : null;
+  }
+
+  function aiBox(m) {
+    const box = el('details', 'm-ai');
+    box.appendChild(el('summary', null, 'AI 앱(제미나이 등)으로 더 똑똑하게 정리'));
+    box.appendChild(el('p', 'm-hint',
+      '① 보내기를 눌러 제미나이·Claude·ChatGPT 앱에 붙여 넣고 → ② AI가 만든 답을 전부 복사해서 → ③ 아래 칸에 붙여 넣으세요. 회사 회의는 회사 계정 AI 앱을 쓰세요.'));
+    const row = el('div', 'm-row');
+    const send = el('button', 'small-btn', navigator.share ? '① AI 앱으로 보내기' : '① 요청 복사');
+    send.addEventListener('click', async () => {
+      const text = aiPrompt(m);
+      try {
+        if (navigator.share) await navigator.share({ text });
+        else {
+          await navigator.clipboard.writeText(text);
+          send.textContent = '복사됨 · AI 앱에 붙여 넣으세요';
+        }
+      } catch {}
+    });
+    const copy = el('button', 'small-btn', '복사만');
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(aiPrompt(m));
+        copy.textContent = '복사됨';
+        setTimeout(() => (copy.textContent = '복사만'), 1500);
+      } catch {
+        ham.say('복사가 안 돼요. 보내기를 써 주세요', 4000);
+      }
+    });
+    row.append(send);
+    if (navigator.share) row.append(copy);
+    box.appendChild(row);
+    const ta = el('textarea', 'm-paste');
+    ta.rows = 5;
+    ta.placeholder = '③ AI가 만든 답(제목·요약·표)을 여기에 붙여 넣기';
+    box.appendChild(ta);
+    const apply = el('button', 'add-btn', '정리 결과 적용');
+    apply.addEventListener('click', () => {
+      const parsed = parseAiAnswer(ta.value);
+      if (!parsed) {
+        ham.say('표를 찾지 못했어요. AI 답을 통째로 붙여 넣어 주세요', 5000);
+        return;
+      }
+      m.basicMinutes = m.basicMinutes || (m.minutes.method === 'basic' ? m.minutes : null);
+      parsed.title = parsed.title || m.minutes.title;
+      parsed.summary = parsed.summary || 'AI 앱으로 정리한 회의록이에요.';
+      m.minutes = parsed;
+      ham.act('hop', 600);
+      ham.say('AI 정리를 회의록과 메모장에 반영했어요!', 4000);
+      commitEdit(m);
+    });
+    box.appendChild(apply);
+    if (m.basicMinutes && m.minutes.method === 'ai') {
+      const undo = el('button', 'small-btn', '자동 골라내기로 되돌리기');
+      undo.addEventListener('click', () => {
+        m.minutes = m.basicMinutes;
+        commitEdit(m);
+      });
+      box.appendChild(undo);
+    }
+    return box;
+  }
+
+  // ── 엑셀 ──
+  function fileSafe(s) {
+    return String(s || '회의록').replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+  }
+  function downloadExcel(m) {
+    const mm = m.minutes;
+    const H = (v) => ({ v, style: 'head' });
+    const L = (v) => ({ v, style: 'label' });
+    const rows = [
+      [{ v: mm.title, style: 'title' }],
+      [L('일시'), when(m.startedAt)],
+      [L('길이'), fmtDur(m.durationSec || 0)],
+      [L('정리 방식'), mm.method === 'ai' ? 'AI 앱 정리' : '자동 골라내기 (말투 규칙)'],
+      [L('요약'), mm.summary],
+      [],
+      [H('구분'), H('내용'), H('담당'), H('기한'), H('완료')],
+    ];
+    const header = rows.length;
+    for (const d of mm.decisions) rows.push(['결정', d, '', '', '']);
+    for (const a of mm.action_items) rows.push(['할 일', a.task, a.owner || '', a.due || '', '']);
+    for (const q of mm.open_questions) rows.push(['확인 필요', q, '', '', '']);
+    for (const k of mm.key_points || []) rows.push(['주요 내용', k, '', '', '']);
+    for (const o of mm.others || []) rows.push(['기타', o, '', '', '']);
+
+    const segs = (m.segments && m.segments.length ? m.segments : m.transcript.split('\n').map((text) => ({ t: null, text }))).filter((s) => s.text);
+    const rawRows = [[H('시각'), H('받아 적은 내용')], ...segs.map((s) => [s.t == null ? '' : fmtDur(s.t), s.text])];
+
+    const bytes = window.XlsxLite.build([
+      { name: '회의록', rows, widths: [12, 64, 16, 14, 8], freezeRow: header },
+      { name: '원문', rows: rawRows, widths: [10, 90], freezeRow: 1 },
+    ]);
+    const name = `회의록_${ymd(m.startedAt)}_${fileSafe(mm.title)}.xlsx`;
+    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // 핸드폰은 공유 창(파일 앱에 저장, 카카오톡, 메일)으로, 안 되면 바로 내려받기
+    const file = typeof File !== 'undefined' ? new File([blob], name, { type: blob.type }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: name }).catch(() => {});
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+
+  function renderResult(m, { keepScroll = false } = {}) {
+    const view = $('view-meeting');
+    const y = view.scrollTop;
     const box = $('m-result');
     box.innerHTML = '';
     if (!m) { box.hidden = true; return; }
@@ -329,34 +588,14 @@
     const mm = m.minutes;
     card.appendChild(el('div', 'm-title', mm.title));
     const meta = el('div', 'm-meta', `${when(m.startedAt)} · ${fmtDur(m.durationSec || 0)} `);
-    meta.appendChild(el('span', 'badge basic', '자동 골라내기'));
+    meta.appendChild(el('span', mm.method === 'ai' ? 'badge ai' : 'badge basic', mm.method === 'ai' ? 'AI 정리' : '자동 골라내기'));
     card.appendChild(meta);
     card.appendChild(el('p', 'm-summary', mm.summary));
 
-    card.appendChild(section('결정사항', mm.decisions, (d) => el('li', null, d)));
-    const acts = section('할 일', mm.action_items, (a) => {
-      const li = el('li', 'm-action');
-      const body = el('div', 'm-action-body');
-      body.appendChild(el('span', null, a.task));
-      if (a.owner) body.appendChild(el('span', 'chip', a.owner));
-      if (a.due) body.appendChild(el('span', 'chip due', a.due));
-      const add = el('button', 'tiny-btn', '메모로');
-      add.title = '할 일 하나를 따로 메모로 넣기';
-      add.addEventListener('click', () => {
-        ham.addNoteText(actionText(a));
-        add.textContent = '넣음';
-        add.disabled = true;
-        ham.say('할 일을 볼주머니에 쏙!');
-      });
-      li.append(body, add);
-      return li;
-    });
-    card.appendChild(acts);
-    card.appendChild(section('확인 필요', mm.open_questions, (d) => el('li', null, d)));
-    card.appendChild(section('주요 내용', mm.key_points, (d) => el('li', null, d)));
-
     const row = el('div', 'm-actions-row');
-    const share = el('button', 'small-btn', navigator.share ? '공유' : '복사');
+    const xlsx = el('button', 'add-btn', '엑셀로 저장');
+    xlsx.addEventListener('click', () => downloadExcel(m));
+    const share = el('button', 'small-btn', navigator.share ? '글로 공유' : '복사');
     share.addEventListener('click', async () => {
       const text = toMarkdown(m);
       try {
@@ -368,8 +607,14 @@
         }
       } catch {}
     });
-    row.appendChild(share);
+    row.append(xlsx, share);
     card.appendChild(row);
+
+    card.appendChild(el('p', 'm-hint', '문장을 누르면 다른 칸으로 옮기거나 뺄 수 있어요. 고친 내용은 메모장 요약에도 반영돼요.'));
+    for (const cat of CATS.slice(0, 4)) card.appendChild(section(m, cat));
+    card.appendChild(section(m, CATS[4], { collapsed: true }));
+
+    card.appendChild(aiBox(m));
 
     if (m.transcript) {
       const det = el('details', 'm-raw');
@@ -377,6 +622,7 @@
       det.appendChild(el('div', 'm-raw-text', m.transcript));
       card.appendChild(det);
     }
+    if (keepScroll) view.scrollTop = y;
   }
 
   // ── 지난 회의 ──

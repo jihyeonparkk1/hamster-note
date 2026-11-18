@@ -158,13 +158,14 @@ function extractBasicMinutes(transcript, { durationSec = 0 } = {}) {
   const top = [...freq.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length).map(([w]) => w);
   const title = top.length ? `${top.slice(0, 2).join('·')} 회의` : '회의';
 
-  const scored = rest
-    .filter((s) => s.length >= 12)
+  const ranked = rest
     .map((s, i) => ({ s, i, score: keywords(s).reduce((a, w) => a + (freq.get(w) || 0), 0) / Math.sqrt(keywords(s).length || 1) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .sort((a, b) => a.i - b.i)
-    .map((x) => tidy(x.s));
+    .filter((x) => x.s.length >= 12)
+    .sort((a, b) => b.score - a.score);
+  const picked = new Set(ranked.slice(0, 5).map((x) => x.i));
+  const scored = ranked.slice(0, 5).sort((a, b) => a.i - b.i).map((x) => tidy(x.s));
+  // 어느 칸에도 안 들어간 문장도 버리지 않고 "기타 내용"으로 전부 남긴다
+  const others = rest.filter((s, i) => !picked.has(i)).map((s) => tidy(s, 200));
 
   const mins = Math.max(1, Math.round(durationSec / 60));
   const counts = [
@@ -184,6 +185,7 @@ function extractBasicMinutes(transcript, { durationSec = 0 } = {}) {
     action_items: actions,
     key_points: scored,
     open_questions: open,
+    others,
   };
 }
 

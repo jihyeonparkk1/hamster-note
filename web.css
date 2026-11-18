@@ -31,6 +31,24 @@ body.web .small-btn { padding: 8px 12px; font-size: 13.5px; }
 body.web .m-live-text { max-height: 40vh; font-size: 14px; }
 body.web .m-live-text p.interim { color: var(--muted); }
 body.web .m-live-text:empty::before { content: "말을 시작하면 여기에 바로 받아 적혀요"; }
+/* 회의록 고치기 */
+.m-item-edit { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin-left: -4px; }
+.m-item-edit:active { background: var(--titlebar); }
+.m-move { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; padding: 6px; background: var(--titlebar); border-radius: 8px; list-style: none; }
+.m-sec ul .m-move { margin-left: -18px; }
+.tiny-btn.danger { color: #c0392b; background: #fde4e1; }
+.m-sec > summary.m-sec-title { cursor: pointer; }
+.m-actions-row { flex-wrap: wrap; align-items: center; }
+.m-actions-row .add-btn { padding: 9px 16px; }
+.m-ai { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.m-ai summary { cursor: pointer; font-weight: 700; color: #4b2d7a; }
+.m-ai .m-row { flex-wrap: wrap; margin-bottom: 8px; }
+.m-paste {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  font: inherit; font-size: 16px; background: var(--bg); color: var(--text); resize: vertical; margin-bottom: 8px;
+}
+.m-paste:focus { outline: none; border-color: var(--accent); }
+.m-ai .small-btn { margin-left: 6px; }
 .m-warn-card { border-color: #f0c27a; background: #fff6e6; color: #6b4a12; }
 .m-backup { margin-top: 4px; }
 .file-btn { display: inline-flex; align-items: center; cursor: pointer; }
