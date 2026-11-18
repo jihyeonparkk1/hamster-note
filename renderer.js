@@ -303,9 +303,19 @@
     });
   }
 
+  // PC 앱: 붙인 메모 목록을 알려 주면 바탕화면 스티커 창을 열고/닫고/고친다
+  const stickyApi = window.api && window.api.sticky;
+  function syncStickies() {
+    if (!stickyApi) return;
+    stickyApi.sync(
+      state.notes.filter((n) => n.sticky).map((n) => ({ id: n.id, text: n.text, color: n.color, done: n.done, sticky: n.sticky })),
+    );
+  }
+
   function render() {
     renderTabs();
     updateCheeks();
+    syncStickies();
     const items = visibleNotes();
     list.innerHTML = '';
     if (!items.length) {
@@ -344,7 +354,7 @@
     text.addEventListener('dblclick', () => startEdit(text, n.id));
     const meta = document.createElement('div');
     meta.className = 'note-meta';
-    meta.textContent = fmt(n.createdAt) + (n.editedAt ? ' · 고침' : '');
+    meta.textContent = fmt(n.createdAt) + (n.editedAt ? ' · 고침' : '') + (n.sticky ? ' · 바탕화면에 붙임' : '');
     body.append(text, meta);
 
     const del = document.createElement('button');
@@ -353,7 +363,23 @@
     del.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
     del.addEventListener('click', () => removeNote(n.id));
 
-    el.append(check, body, del);
+    // PC 앱에서만: 바탕화면에 스티커 메모로 붙이기 / 떼기
+    if (stickyApi) {
+      const stick = document.createElement('button');
+      stick.className = 'del stick' + (n.sticky ? ' on' : '');
+      stick.title = n.sticky ? '바탕화면에서 떼기' : '바탕화면에 스티커로 붙이기';
+      stick.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z" fill="currentColor"/></svg>';
+      stick.addEventListener('click', () => {
+        n.sticky = n.sticky ? null : {};
+        render();
+        scheduleSave();
+        act('hop', 600);
+        say(n.sticky ? '바탕화면에 붙여 뒀어요!' : '떼어서 볼주머니에 넣었어요');
+      });
+      el.append(check, body, stick, del);
+    } else {
+      el.append(check, body, del);
+    }
     return el;
   }
 
@@ -555,6 +581,31 @@
       say(p ? '맨 위에 붙어 있을게요!' : '고정 풀었어요');
     });
     $('btn-min').addEventListener('click', () => window.api.minimize());
+    $('btn-settings')?.addEventListener('click', () => window.api.settingsMenu());
+    // 스티커 창에서 고친 글·옮긴 위치·떼기를 메모장에 반영
+    stickyApi.onEdit((p) => {
+      const n = state.notes.find((x) => x.id === p.id);
+      if (!n) return;
+      if (typeof p.text === 'string' && p.text !== n.text) {
+        n.text = p.text;
+        n.editedAt = Date.now();
+        render();
+      }
+      if ('sticky' in p) {
+        const wasStuck = !!n.sticky;
+        n.sticky = p.sticky;
+        if (wasStuck && !p.sticky) render(); // 스티커 창에서 × 를 눌러 뗌
+      }
+      scheduleSave();
+    });
+    // 스티커 창의 ✓ → 완료(씨앗·축하는 메모장과 똑같이) 하고 바탕화면에서 뗀다
+    stickyApi.onDone(({ id }) => {
+      const n = state.notes.find((x) => x.id === id);
+      if (!n) return;
+      n.sticky = null;
+      if (!n.done) toggleDone(id);
+      else { render(); scheduleSave(); }
+    });
     $('btn-close').addEventListener('click', async () => {
       clearTimeout(saveTimer);
       await storage.save({ notes: state.notes, settings: state.settings });

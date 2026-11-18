@@ -421,6 +421,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .note:hover .del, .del:focus-visible { opacity: 1; }
 .del:hover { background: rgba(0, 0, 0, 0.08); color: #c0392b; }
+.del.stick:hover { color: #d27a2c; }
+.del.stick.on { opacity: 1; color: #d27a2c; }
 
 .empty {
   text-align: center;
