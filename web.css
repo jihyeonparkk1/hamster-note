@@ -1,0 +1,36 @@
+/* 핸드폰 웹앱 전용 보정 — PC 앱의 styles.css 위에 덮어쓴다 */
+html, body { height: 100%; }
+body.web {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  max-width: 560px;
+  margin: 0 auto;
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+body.web .titlebar { -webkit-app-region: none; height: 40px; justify-content: center; padding: 0 14px; }
+body.web .app-title { font-size: 15px; }
+body.web .win-buttons { display: none; }
+body.web .hero { padding-top: 38px; }
+body.web .hamster-btn { width: 128px; }
+/* 손가락으로 누르기 쉽게 */
+body.web .mode { padding: 9px 0; font-size: 15px; }
+body.web .tab { padding: 7px 10px; }
+body.web .composer textarea { font-size: 16px; } /* 16px 미만이면 아이폰이 확대해 버림 */
+body.web .search { font-size: 16px; width: 92px; }
+body.web .search:focus { width: 120px; }
+body.web .add-btn { padding: 9px 14px; }
+body.web .add-btn.wide { padding: 13px; font-size: 16px; }
+body.web .stop-btn { padding: 11px 14px; font-size: 15px; }
+body.web .del { opacity: 0.55; width: 32px; height: 32px; }
+body.web .check { width: 24px; height: 24px; }
+body.web .tiny-btn { padding: 6px 10px; font-size: 12.5px; }
+body.web .small-btn { padding: 8px 12px; font-size: 13.5px; }
+body.web .m-live-text { max-height: 40vh; font-size: 14px; }
+body.web .m-live-text p.interim { color: var(--muted); }
+body.web .m-live-text:empty::before { content: "말을 시작하면 여기에 바로 받아 적혀요"; }
+.m-warn-card { border-color: #f0c27a; background: #fff6e6; color: #6b4a12; }
+.m-backup { margin-top: 4px; }
+.file-btn { display: inline-flex; align-items: center; cursor: pointer; }

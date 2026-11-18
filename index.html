@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <meta name="theme-color" content="#fbe9cf" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="햄스터 노트" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <title>햄스터 노트</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="web.css" />
+</head>
+<body class="web">
+  <header class="titlebar">
+    <span class="app-title">햄스터 노트</span>
+    <div class="win-buttons"></div>
+  </header>
+
+  <section class="hero">
+    <div class="bubble" id="bubble" role="status" aria-live="polite">안녕하세요!</div>
+    <button class="hamster-btn" id="hamster" title="콩이를 쓰다듬기" aria-label="햄스터 콩이">
+      <svg class="hamster" viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg">
+        <ellipse class="shadow" cx="100" cy="158" rx="58" ry="8" />
+        <g class="body-group">
+          <!-- 귀 -->
+          <g class="ear ear-l"><circle cx="56" cy="50" r="17" class="fur" /><circle cx="56" cy="50" r="10" class="ear-in" /></g>
+          <g class="ear ear-r"><circle cx="144" cy="50" r="17" class="fur" /><circle cx="144" cy="50" r="10" class="ear-in" /></g>
+          <!-- 몸 -->
+          <ellipse cx="100" cy="100" rx="66" ry="56" class="fur" />
+          <path d="M60 62 Q100 40 140 62 Q122 52 100 52 Q78 52 60 62Z" class="fur-dark" />
+          <ellipse cx="100" cy="122" rx="40" ry="32" class="belly" />
+          <!-- 볼주머니 -->
+          <g class="cheek cheek-l"><ellipse cx="60" cy="102" rx="17" ry="15" class="cheek-fill" /><ellipse cx="58" cy="104" rx="8" ry="5" class="blush" /></g>
+          <g class="cheek cheek-r"><ellipse cx="140" cy="102" rx="17" ry="15" class="cheek-fill" /><ellipse cx="142" cy="104" rx="8" ry="5" class="blush" /></g>
+          <!-- 얼굴 -->
+          <ellipse cx="100" cy="96" rx="25" ry="17" class="muzzle" />
+          <g class="eyes">
+            <g class="eye eye-l"><ellipse cx="80" cy="80" rx="6" ry="7" class="pupil" /><circle cx="82" cy="77" r="2.2" class="glint" /></g>
+            <g class="eye eye-r"><ellipse cx="120" cy="80" rx="6" ry="7" class="pupil" /><circle cx="122" cy="77" r="2.2" class="glint" /></g>
+          </g>
+          <ellipse cx="100" cy="89" rx="4.5" ry="3.2" class="nose" />
+          <path d="M93 95 Q96.5 100 100 95.5 Q103.5 100 107 95" class="mouth" />
+          <g class="whiskers">
+            <path d="M74 92 L52 88 M74 96 L52 98" /><path d="M126 92 L148 88 M126 96 L148 98" />
+          </g>
+          <!-- 앞발과 해바라기씨 -->
+          <g class="seed"><ellipse cx="100" cy="124" rx="7" ry="11" class="seed-shell" /><path d="M100 115 L100 133" class="seed-line" /></g>
+          <ellipse cx="88" cy="126" rx="7" ry="6" class="paw" />
+          <ellipse cx="112" cy="126" rx="7" ry="6" class="paw" />
+          <!-- 뒷발 -->
+          <ellipse cx="74" cy="152" rx="11" ry="6" class="paw" />
+          <ellipse cx="126" cy="152" rx="11" ry="6" class="paw" />
+        </g>
+      </svg>
+    </button>
+    <div class="pouch-count" id="pouch-count">볼주머니 0개</div>
+  </section>
+
+  <nav class="modes" role="tablist" aria-label="화면">
+    <button class="mode" data-mode="notes" role="tab" aria-selected="true">메모</button>
+    <button class="mode" data-mode="meeting" role="tab" aria-selected="false">회의록<span class="rec-dot" id="mode-rec" hidden></span></button>
+  </nav>
+
+  <div class="view" id="view-notes">
+  <section class="composer">
+    <textarea id="input" rows="2" placeholder="메모를 쓰고 볼주머니에 넣기를 누르세요"></textarea>
+    <div class="composer-row">
+      <div class="colors" id="colors" role="radiogroup" aria-label="메모 색"></div>
+      <button id="btn-add" class="add-btn">볼주머니에 넣기</button>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" data-filter="all" role="tab">전체</button>
+    <button class="tab" data-filter="todo" role="tab">할 일</button>
+    <button class="tab" data-filter="done" role="tab">완료</button>
+    <input id="search" class="search" type="search" placeholder="찾기" />
+  </nav>
+
+  <main class="list" id="list"></main>
+  </div>
+
+  <div class="view meeting" id="view-meeting" hidden>
+    <section class="m-card m-warn-card" id="m-unsupported" hidden>
+      <div class="m-setup-title">이 브라우저에서는 받아 적기를 할 수 없어요</div>
+      <p class="m-hint" id="m-unsupported-msg"></p>
+    </section>
+
+    <section class="m-card m-controls">
+      <div class="m-idle" id="m-idle">
+        <button id="m-start" class="add-btn wide">회의 시작</button>
+        <p class="m-hint">핸드폰을 회의 탁자 가운데에 두고, 회의가 끝날 때까지 화면을 켜 두세요.
+          받아 적기는 핸드폰의 음성 인식을 써서 말소리가 Apple(아이폰)·Google(안드로이드)로 전송돼요.
+          받아 적은 글과 회의록은 이 핸드폰에만 저장돼요. 참석자에게 녹음한다고 미리 알려 주세요.</p>
+      </div>
+      <div class="m-recording" id="m-recording" hidden>
+        <span class="rec-dot big"></span>
+        <span class="m-timer" id="m-timer">00:00</span>
+        <span class="m-sub" id="m-rec-sub">듣는 중</span>
+        <button id="m-stop" class="stop-btn">회의 끝내기</button>
+      </div>
+    </section>
+
+    <section class="m-live" id="m-live" hidden>
+      <div class="m-section-title">받아 적는 중</div>
+      <div id="m-live-text" class="m-live-text"></div>
+    </section>
+
+    <section class="m-result" id="m-result" hidden></section>
+
+    <section class="m-history">
+      <div class="m-section-title">지난 회의</div>
+      <div id="m-list"></div>
+    </section>
+
+    <section class="m-card m-backup">
+      <div class="m-setup-title">백업</div>
+      <p class="m-hint">메모와 회의록은 이 핸드폰 브라우저에만 저장돼요. 핸드폰을 바꾸거나 Safari 기록을 지우기 전에 백업해 두세요.</p>
+      <div class="m-row">
+        <button id="b-export" class="small-btn">백업 파일 저장</button>
+        <label class="small-btn file-btn">백업 불러오기<input id="b-import" type="file" accept="application/json,.json" hidden /></label>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" hidden>
+    <span id="toast-text"></span>
+    <button id="toast-undo">되돌리기</button>
+  </div>
+
+  <script src="basic-minutes.js"></script>
+  <script src="renderer.js"></script>
+  <script src="meeting-web.js"></script>
+  <script src="register-sw.js"></script>
+</body>
+</html>
