@@ -81,8 +81,10 @@
   // 할 일이 많을수록 볼이 통통해진다 (최대 10개까지)
   function updateCheeks() {
     const open = state.notes.filter((n) => !n.done).length;
-    // 할 일 하나마다 볼이 눈에 띄게 커지고(최대 12개, 약 1.7배), 끝내면 다시 줄어든다
-    hamster.style.setProperty('--cheek-scale', String(1 + Math.min(open, 12) * 0.06));
+    // 할 일 하나마다 볼이 옆으로 쭈욱 늘어나고(최대 12개, 가로 약 2.2배), 끝내면 다시 줄어든다
+    const n = Math.min(open, 12);
+    hamster.style.setProperty('--cheek-x', String(1 + n * 0.1));
+    hamster.style.setProperty('--cheek-y', String(1 + n * 0.03));
     pouchCount.textContent = `볼주머니 ${state.notes.length}개 · 할 일 ${open}개`;
   }
 

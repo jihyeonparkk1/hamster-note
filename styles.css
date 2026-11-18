@@ -111,7 +111,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   transform-origin: center;
 }
 /* 볼은 바깥쪽으로 부푼다 (안쪽 가장자리를 기준으로 커져서 눈을 가리지 않음) */
-.cheek { transform: scale(var(--cheek-scale, 1)); transition: transform 0.45s cubic-bezier(.3,1.6,.5,1); }
+/* 할 일이 늘수록 옆으로 쭈욱 늘어난다 (가로는 많이, 세로는 조금) */
+.cheek {
+  transform: scale(var(--cheek-x, 1), var(--cheek-y, 1));
+  transition: transform 0.6s cubic-bezier(.3,1.7,.5,1);
+}
 .cheek-l { transform-origin: 85% 45%; }
 .cheek-r { transform-origin: 15% 45%; }
 .ear { animation: ear-wiggle 6s infinite; }
@@ -124,7 +128,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hamster.peek .eyes { transform: translateY(3px); }
 
 /* 메모를 넣을 때: 볼이 빵빵해지고 씨앗이 사라진다 */
-.hamster.puff .cheek { transform: scale(calc(var(--cheek-scale, 1) * 1.25)); }
+/* 메모를 넣는 순간: 볼이 찹쌀떡처럼 쭈욱 늘어났다가 출렁이며 돌아온다 */
+.hamster.puff .cheek { animation: cheek-stretch 0.9s ease-out; }
+@keyframes cheek-stretch {
+  0%   { transform: scale(var(--cheek-x, 1), var(--cheek-y, 1)); }
+  30%  { transform: scale(calc(var(--cheek-x, 1) * 1.45), calc(var(--cheek-y, 1) * 0.88)); }
+  50%  { transform: scale(calc(var(--cheek-x, 1) * 0.9), calc(var(--cheek-y, 1) * 1.1)); }
+  68%  { transform: scale(calc(var(--cheek-x, 1) * 1.12), calc(var(--cheek-y, 1) * 0.96)); }
+  84%  { transform: scale(calc(var(--cheek-x, 1) * 0.97), calc(var(--cheek-y, 1) * 1.02)); }
+  100% { transform: scale(var(--cheek-x, 1), var(--cheek-y, 1)); }
+}
 .hamster.puff .seed { animation: gulp 0.6s ease-in forwards; }
 
 .hamster.hop .body-group { animation: hop 0.55s cubic-bezier(.3,1.4,.5,1); }
