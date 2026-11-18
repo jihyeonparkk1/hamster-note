@@ -180,6 +180,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   transform: translateX(-50%) rotate(45deg);
 }
 .bubble.hidden { opacity: 0; transform: translateX(-50%) translateY(4px); }
+.bubble.long { white-space: normal; text-align: center; width: max-content; max-width: min(320px, calc(100% - 32px)); line-height: 1.35; z-index: 4; }
 
 .pouch-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .pouch-count { font-size: 12px; color: var(--muted); }

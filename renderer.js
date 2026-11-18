@@ -64,6 +64,7 @@
   let bubbleTimer;
   function say(text, ms = 3200) {
     bubble.textContent = text;
+    bubble.classList.toggle('long', text.length > 22); // 긴 말은 줄바꿈해서 다 보이게
     bubble.classList.remove('hidden');
     clearTimeout(bubbleTimer);
     bubbleTimer = setTimeout(() => bubble.classList.add('hidden'), ms);
@@ -237,6 +238,27 @@
     updateSleep();
   }
   setInterval(updateSleep, 60 * 1000);
+
+  // ── 업무 중 알림 문구 (PC: 점심시간·퇴근 전) ──
+  function composeReminder(kind, notes, now = new Date()) {
+    const doneToday = notes.filter((n) => n.done && n.doneAt && sameDay(new Date(n.doneAt), now)).length;
+    const open = notes.filter((n) => !n.done);
+    const urgent = open.filter((n) => dueToday(n));
+    const short = (t) => (t.split('\n')[0].length > 24 ? `${t.split('\n')[0].slice(0, 23)}…` : t.split('\n')[0]);
+    if (kind === 'lunch') {
+      const lines = ['콩이도 해바라기씨 먹으러 갈게요. 맛있게 드세요!', '오전에 수고했어요. 든든하게 드시고 오세요!', '배꼽시계가 울려요~ 점심 먹고 와요!'];
+      return {
+        title: '🍚 점심시간이에요!',
+        body: pick(lines) + (doneToday ? ` 오전에 ${doneToday}개 끝냈어요 🌻` : ''),
+        allDone: false,
+      };
+    }
+    let body;
+    if (urgent.length) body = `오늘까지인 일이 ${urgent.length}개 남았어요! "${short(urgent[0].text)}"${urgent.length > 1 ? ` 외 ${urgent.length - 1}개` : ''}`;
+    else if (!open.length) body = doneToday ? `할 일을 다 끝냈어요! 오늘 ${doneToday}개 해냈어요 🌻 푹 쉬어요` : '남은 할 일이 없어요. 오늘도 수고했어요!';
+    else body = doneToday ? `오늘 ${doneToday}개 끝냈어요! 남은 할 일 ${open.length}개는 내일 같이 해요` : `오늘도 수고했어요. 남은 할 일 ${open.length}개는 내일 같이 해요`;
+    return { title: '🏠 곧 퇴근 시간이에요', body, allDone: !open.length && doneToday > 0 };
+  }
 
   // 할 일이 많을수록 볼이 통통해진다
   function updateCheeks() {
@@ -420,6 +442,8 @@
     const n = state.notes.find((x) => x.id === id);
     if (!n) return;
     n.done = !n.done;
+    if (n.done) n.doneAt = Date.now(); // 퇴근 전 알림의 "오늘 끝낸 일" 세기용
+    else delete n.doneAt;
     const unlocked = n.done ? awardSeed(n) : null;
     render();
     scheduleSave();
@@ -582,6 +606,16 @@
     });
     $('btn-min').addEventListener('click', () => window.api.minimize());
     $('btn-settings')?.addEventListener('click', () => window.api.settingsMenu());
+    // 점심시간·퇴근 전 알림: Windows 알림 + 콩이 반응
+    window.api.onReminder(({ kind }) => {
+      const r = composeReminder(kind, state.notes);
+      window.api.notify({ title: r.title, body: r.body });
+      stayAwake();
+      if (kind === 'lunch') act('puff', 900);
+      else act('hop', 600);
+      if (r.allDone) runWheel();
+      say(r.body, 8000);
+    });
     // 스티커 창에서 고친 글·옮긴 위치·떼기를 메모장에 반영
     stickyApi.onEdit((p) => {
       const n = state.notes.find((x) => x.id === p.id);
