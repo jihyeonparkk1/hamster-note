@@ -124,6 +124,7 @@
     rec.onresult = (e) => {
       if (!current) sessionAt = Math.round((Date.now() - startedAt) / 1000);
       current = joinResults(e.results);
+      ham.nod(); // 말이 들리면 끄덕끄덕
       renderLive();
       saveLive();
       $('m-rec-sub').textContent = '받아 적는 중';
@@ -235,8 +236,12 @@
     loadList();
     if (byError && fatalError) ham.say(fatalError, 8000);
     else if (result.status === 'done') {
-      ham.act('hop', 600);
-      ham.say('회의록을 메모장에도 넣어 뒀어요!', 4000);
+      // 할 일 개수만큼 메모를 볼에 냠냠 받아먹고 나서 인사
+      const n = result.minutes.action_items.length;
+      ham.eat(Math.max(1, n)).then(() => {
+        ham.act('hop', 600);
+        ham.say(n ? `할 일 ${n}개 냠냠! 회의록을 메모장에 넣어 뒀어요` : '회의록을 메모장에 넣어 뒀어요!', 4500);
+      });
     } else ham.say('받아 적은 말이 없어요', 4000);
   }
 
@@ -385,6 +390,7 @@
         add.title = '할 일 하나를 따로 메모로 넣기';
         add.addEventListener('click', (e) => {
           e.stopPropagation();
+          ham.eat(1);
           ham.addNoteText(actionText(it));
           add.textContent = '넣음';
           add.disabled = true;

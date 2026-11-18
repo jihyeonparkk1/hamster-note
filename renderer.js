@@ -17,6 +17,9 @@
     evening: ['오늘 하루 수고했어요', '저녁엔 쉬엄쉬엄 해요', '내일 할 일도 넣어 둘까요?'],
     night: ['늦었어요, 얼른 자요…', '콩이는 야행성이라 괜찮아요', '쿨쿨… 아, 안 잤어요!'],
     pet: ['헤헤, 간지러워요', '더 쓰다듬어 주세요!', '찍찍!', '볼주머니 만지지 마세요~', '해바라기씨 주세요!'],
+    petHappy: ['헤헤 기분 최고예요!', '더 더 쓰다듬어 주세요~', '행복해서 녹을 것 같아요'],
+    wake: ['화들짝! 안 잤어요… 정말이에요!', '으앗, 깜짝이야! 깨어 있었어요!', '쿨… 아, 네! 듣고 있었어요!'],
+    full: ['볼이 꽉 찼어요… 하나만 끝내 주세요 🥺', '더는 못 넣어요… 볼이 터질 것 같아요!', '우물우물… 너무 많아요 🥺'],
     add: ['볼주머니에 쏙!', '냠, 잘 넣어 뒀어요', '꼭꼭 숨겨 둘게요', '잊지 않게 챙겨 둘게요'],
     done: ['다 했다! 최고예요', '하나 끝! 잘했어요', '해치웠다!'],
     allDone: ['할 일을 전부 끝냈어요! 대단해요'],
@@ -78,7 +81,164 @@
     if (h >= 18 && h < 23) return 'evening';
     return 'night';
   }
-  // 할 일이 많을수록 볼이 통통해진다 (최대 10개까지)
+  // ── 귀여운 움직임 (씨앗·하트·메모가 날아다님) ──
+  const hero = document.querySelector('.hero');
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const SEED_SVG = '<svg width="11" height="16" viewBox="0 0 14 22"><ellipse cx="7" cy="11" rx="6.5" ry="10.5" fill="#5e4636"/><path d="M7 2 L7 20" stroke="#d9cbbd" stroke-width="1.6" stroke-dasharray="3 2.5"/></svg>';
+  const PAPER_SVG = '<svg width="16" height="19" viewBox="0 0 22 26"><rect x="1" y="1" width="20" height="24" rx="2" fill="#fff" stroke="#d9c7b2"/><path d="M5 8 L17 8 M5 13 L17 13 M5 18 L13 18" stroke="#c9b49e" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  const rand = (a, b) => a + Math.random() * (b - a);
+  function pointOf(el, fx = 0.5, fy = 0.5) {
+    const h = hero.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { x: r.left - h.left + r.width * fx, y: r.top - h.top + r.height * fy };
+  }
+  function fly(html, cls, from, to, { duration = 700, rotate = 0, delay = 0, arc = 0, scaleTo = 1, fade = true } = {}) {
+    if (reduceMotion || !hero) return Promise.resolve();
+    const el = document.createElement('div');
+    el.className = `fx ${cls}`;
+    el.innerHTML = html;
+    hero.appendChild(el);
+    const mid = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - arc };
+    const anim = el.animate(
+      [
+        { transform: `translate(${from.x}px, ${from.y}px) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(${mid.x}px, ${mid.y}px) rotate(${rotate / 2}deg)`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${to.x}px, ${to.y}px) rotate(${rotate}deg) scale(${scaleTo})`, opacity: fade ? 0 : 1 },
+      ],
+      { duration, delay, easing: 'cubic-bezier(.3,.6,.5,1)', fill: 'both' },
+    );
+    return anim.finished.catch(() => {}).then(() => el.remove());
+  }
+  // 볼에서 해바라기씨가 톡 튀어나감
+  function popSeeds(count = 1) {
+    for (let i = 0; i < count; i++) {
+      const right = count === 1 ? Math.random() < 0.5 : i % 2 === 0;
+      const from = pointOf(hamster.querySelector(right ? '.cheek-r' : '.cheek-l'), right ? 0.75 : 0.25, 0.4);
+      const dir = right ? 1 : -1;
+      fly(SEED_SVG, 'seed-fx', from, { x: from.x + dir * rand(40, 110), y: from.y + rand(10, 50) }, {
+        duration: rand(650, 950), rotate: dir * rand(300, 720), arc: rand(40, 80), delay: count === 1 ? 0 : i * 70,
+      });
+    }
+  }
+  function hearts(count = 2) {
+    const top = pointOf(hamster, 0.5, 0.2);
+    for (let i = 0; i < count; i++) {
+      fly('♥', 'heart', { x: top.x + rand(-30, 30), y: top.y }, { x: top.x + rand(-60, 60), y: top.y - rand(40, 80) }, {
+        duration: rand(900, 1300), delay: i * 120, rotate: rand(-30, 30),
+      });
+    }
+  }
+  // 회의 할 일 등을 볼에 하나씩 냠냠 받아먹기
+  async function eat(count) {
+    count = Math.min(count, 8);
+    const h = hero.getBoundingClientRect();
+    for (let i = 0; i < count; i++) {
+      const right = i % 2 === 0;
+      const to = pointOf(hamster.querySelector(right ? '.cheek-r' : '.cheek-l'), 0.5, 0.45);
+      const from = { x: h.width / 2 + rand(-60, 60), y: h.height + 10 };
+      await fly(PAPER_SVG, 'paper-fx', from, to, { duration: 420, arc: 30, scaleTo: 0.3, rotate: right ? 40 : -40 });
+      act('puff', 900);
+      await new Promise((r) => setTimeout(r, 120));
+    }
+  }
+  function runWheel(ms = 4500) {
+    if (reduceMotion) return;
+    hero.classList.add('running');
+    hamster.classList.add('running');
+    setTimeout(() => {
+      hero.classList.remove('running');
+      hamster.classList.remove('running');
+    }, ms);
+  }
+
+  // ── 해바라기씨 모으기 · 꾸미기 ──
+  const OUTFITS = [
+    { id: 'ribbon', icon: '🎀', name: '리본', need: 10 },
+    { id: 'pin', icon: '🌻', name: '해바라기 핀', need: 30 },
+    { id: 'glasses', icon: '👓', name: '안경', need: 50 },
+    { id: 'crown', icon: '👑', name: '왕관', need: 100 },
+  ];
+  const seeds = () => state.settings.seeds || 0;
+  function applyOutfit() {
+    for (const o of OUTFITS) hamster.classList.remove(`wear-${o.id}`);
+    const o = OUTFITS.find((x) => x.id === state.settings.outfit);
+    if (o && seeds() >= o.need) hamster.classList.add(`wear-${o.id}`);
+    const btn = $('seed-count');
+    if (btn) btn.textContent = `🌻 ${seeds()}`;
+  }
+  function renderCloset() {
+    const box = $('closet-items');
+    if (!box) return;
+    box.innerHTML = '';
+    for (const o of [{ id: null, icon: '🐹', name: '없음', need: 0 }, ...OUTFITS]) {
+      const b = document.createElement('button');
+      b.className = 'closet-item';
+      const locked = seeds() < o.need;
+      b.disabled = locked;
+      b.setAttribute('aria-pressed', String((state.settings.outfit || null) === o.id));
+      b.innerHTML = `<span class="ic">${locked ? '🔒' : o.icon}</span><span>${locked ? `씨앗 ${o.need}` : o.name}</span>`;
+      b.addEventListener('click', () => {
+        state.settings.outfit = o.id;
+        applyOutfit();
+        renderCloset();
+        scheduleSave();
+        act('hop', 600);
+        say(o.id ? `${o.name} 어때요? 예쁘죠!` : '역시 그냥 콩이가 최고죠');
+      });
+      box.appendChild(b);
+    }
+  }
+  // 할 일을 처음 끝낼 때만 씨앗 1개 (다시 체크해도 또 받지 않음)
+  function awardSeed(note) {
+    if (note.seeded) return null;
+    note.seeded = true;
+    state.settings.seeds = seeds() + 1;
+    const btn = $('seed-count');
+    if (btn) { btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump'); }
+    applyOutfit();
+    return OUTFITS.find((o) => o.need === seeds()) || null; // 방금 열린 꾸미기
+  }
+
+  // ── 기한이 오늘인 할 일 (메모 글에서 읽음) ──
+  const WEEK = '일월화수목금토';
+  const dayStart = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const sameDay = (a, b) => dayStart(a).getTime() === dayStart(b).getTime();
+  function dueToday(note) {
+    const t = note.text;
+    const now = new Date();
+    const created = new Date(note.createdAt || Date.now());
+    const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    if (/(^|\s)오늘(\s?(까지|중으로|중에|안에|내로|오전|오후|저녁))?/.test(t) && sameDay(created, now)) return true;
+    if (/(^|\s)내일/.test(t) && sameDay(addDays(created, 1), now)) return true;
+    const md = t.match(/(\d{1,2})\s?(?:월\s?|\/)\s?(\d{1,2})\s?일?/);
+    if (md && +md[1] === now.getMonth() + 1 && +md[2] === now.getDate()) return true;
+    const wd = t.match(/(다음\s?주\s?)?([월화수목금토일])요일/);
+    if (wd) {
+      const target = WEEK.indexOf(wd[2]);
+      const m = (d) => (d.getDay() + 6) % 7; // 월요일=0
+      let due;
+      if (wd[1]) due = addDays(created, -m(created) + 7 + ((target + 6) % 7)); // 다음 주 그 요일
+      else due = addDays(created, (target - created.getDay() + 7) % 7); // 이번에 오는 그 요일
+      return sameDay(due, now);
+    }
+    return false;
+  }
+
+  // ── 졸린 콩이 (밤 11시~새벽 5시, 누르면 10분 깨어 있음) ──
+  let wakeUntil = 0;
+  function updateSleep() {
+    const h = new Date().getHours();
+    const sleepy = (h >= 23 || h < 5) && Date.now() > wakeUntil && !hamster.classList.contains('listening');
+    hamster.classList.toggle('sleepy', sleepy);
+    hero.classList.toggle('sleepy', sleepy);
+  }
+  function stayAwake() {
+    wakeUntil = Date.now() + 10 * 60 * 1000;
+    updateSleep();
+  }
+  setInterval(updateSleep, 60 * 1000);
+
+  // 할 일이 많을수록 볼이 통통해진다
   function updateCheeks() {
     const open = state.notes.filter((n) => !n.done).length;
     // 할 일 하나마다 볼이 옆으로 쭈욱 늘어나고(최대 12개, 가로 약 2.2배), 끝내면 다시 줄어든다
@@ -86,6 +246,8 @@
     hamster.style.setProperty('--cheek-x', String(1 + n * 0.1));
     hamster.style.setProperty('--cheek-y', String(1 + n * 0.03));
     pouchCount.textContent = `볼주머니 ${state.notes.length}개 · 할 일 ${open}개`;
+    hamster.classList.toggle('urgent', state.notes.some((x) => !x.done && dueToday(x)));
+    applyOutfit();
   }
 
   // ── 색 고르기 ──
@@ -214,21 +376,49 @@
     if (state.settings.filter === 'done') state.settings.filter = 'all';
     render();
     scheduleSave();
+    stayAwake();
     act('puff', 900);
-    say(pick(LINES.add));
+    if (!fullCheck()) say(pick(LINES.add));
+  }
+
+  // 할 일이 12개를 넘으면 볼이 꽉 차서 부들부들
+  function fullCheck() {
+    const open = state.notes.filter((x) => !x.done).length;
+    if (open <= 12) return false;
+    setTimeout(() => act('full', 700), 500);
+    say(pick(LINES.full), 4000);
+    return true;
   }
 
   function toggleDone(id) {
     const n = state.notes.find((x) => x.id === id);
     if (!n) return;
     n.done = !n.done;
+    const unlocked = n.done ? awardSeed(n) : null;
     render();
     scheduleSave();
+    stayAwake();
     if (n.done) {
       act('hop', 600);
       act('happy', 900);
       const left = state.notes.filter((x) => !x.done).length;
-      say(left === 0 ? pick(LINES.allDone) : pick(LINES.done));
+      if (left === 0) {
+        popSeeds(12);
+        setTimeout(() => runWheel(), 700);
+        say(pick(LINES.allDone), 4500);
+      } else {
+        popSeeds(1);
+        say(pick(LINES.done));
+      }
+      if (unlocked) {
+        setTimeout(() => {
+          renderCloset();
+          // 받침이 있으면 "을", 없으면 "를"
+          const last = unlocked.name.charCodeAt(unlocked.name.length - 1) - 0xac00;
+          const josa = last >= 0 && last % 28 ? '을' : '를';
+          say(`${unlocked.icon} ${unlocked.name}${josa} 얻었어요! 🌻를 눌러 입혀 주세요`, 5000);
+        }, left === 0 ? 4600 : 900);
+      }
     }
   }
 
@@ -307,9 +497,40 @@
   $('btn-add').addEventListener('click', addNote);
   $('toast-undo').addEventListener('click', undoRemove);
 
+  // 쓰다듬기: 연달아 누를수록 기분이 좋아지고, 6번이면 발라당
+  let petCount = 0;
+  let petTimer;
   hamsterBtn.addEventListener('click', () => {
-    act('hop', 600);
-    say(pick(LINES.pet));
+    if (hamster.classList.contains('sleepy')) {
+      stayAwake();
+      act('hop', 600);
+      say(pick(LINES.wake));
+      return;
+    }
+    petCount++;
+    clearTimeout(petTimer);
+    petTimer = setTimeout(() => (petCount = 0), 1500);
+    if (petCount >= 6) {
+      petCount = 0;
+      act('flop', 2800);
+      hearts(6);
+      say('발라당~ 배 만져 주세요', 3000);
+    } else if (petCount >= 3) {
+      act('happy', 1200);
+      act('hop', 600);
+      hearts(2);
+      say(pick(LINES.petHappy));
+    } else {
+      act('hop', 600);
+      say(pick(LINES.pet));
+    }
+  });
+
+  // 🌻 누르면 꾸미기 옷장
+  $('seed-count')?.addEventListener('click', () => {
+    const closet = $('closet');
+    closet.hidden = !closet.hidden;
+    if (!closet.hidden) renderCloset();
   });
 
   document.querySelectorAll('.tab').forEach((t) =>
@@ -350,10 +571,23 @@
   }, 90_000);
 
   // 회의록 화면에서 쓰는 햄스터·메모 기능
+  let lastNod = 0;
   window.hamster = {
     say,
     act,
-    listening: (on) => hamster.classList.toggle('listening', !!on),
+    eat,
+    listening(on) {
+      hamster.classList.toggle('listening', !!on);
+      if (on) stayAwake();
+      updateSleep();
+    },
+    // 회의 중 말소리가 들리면 끄덕끄덕 (너무 자주 하지 않게)
+    nod() {
+      const now = Date.now();
+      if (now - lastNod < 700) return;
+      lastNod = now;
+      act('nod', 500);
+    },
     addNoteText(text, color = 'peach') {
       text = String(text || '').trim();
       if (!text) return null;
@@ -362,6 +596,7 @@
       render();
       scheduleSave();
       act('puff', 900);
+      fullCheck();
       return id;
     },
     // 회의록을 고치면 메모장에 넣어 둔 요약도 같이 바뀐다 (메모를 지웠으면 다시 만들지 않음)
@@ -382,7 +617,11 @@
     state.settings = { filter: 'all', color: 'butter', ...(data?.settings || {}) };
     renderColors();
     render();
+    updateSleep();
     const open = state.notes.filter((n) => !n.done).length;
-    say(open ? `할 일이 ${open}개 있어요!` : pick(LINES[timeOfDay()]));
+    const urgent = state.notes.filter((n) => !n.done && dueToday(n)).length;
+    if (hamster.classList.contains('sleepy')) say('쿨쿨… (눌러서 깨워 주세요)', 4000);
+    else if (urgent) say(`오늘까지인 일이 ${urgent}개 있어요!`, 4500);
+    else say(open ? `할 일이 ${open}개 있어요!` : pick(LINES[timeOfDay()]));
   });
 })();

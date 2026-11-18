@@ -181,7 +181,113 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .bubble.hidden { opacity: 0; transform: translateX(-50%) translateY(4px); }
 
-.pouch-count { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.pouch-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.pouch-count { font-size: 12px; color: var(--muted); }
+.seed-count {
+  border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 1px 9px; font-size: 12px; font-weight: 700; color: var(--text);
+}
+.seed-count:hover { border-color: var(--accent); }
+.seed-count.bump { animation: bump 0.4s cubic-bezier(.3,1.8,.5,1); }
+@keyframes bump { 50% { transform: scale(1.3); } }
+
+/* ── 꾸미기 옷장 ── */
+.closet {
+  margin: 8px 14px 0; padding: 10px 12px; width: calc(100% - 28px);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
+  box-shadow: 0 4px 14px var(--shadow); position: relative; z-index: 3;
+}
+.closet[hidden] { display: none; }
+.closet-title { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.closet-items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.closet-item {
+  border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px;
+  padding: 6px 2px; font-size: 11.5px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.closet-item .ic { font-size: 20px; line-height: 1.2; }
+.closet-item[aria-pressed="true"] { border-color: var(--accent); background: var(--titlebar); }
+.closet-item:disabled { opacity: 0.45; }
+
+/* ── 꾸미기 소품 (입은 것만 보임) ── */
+.acc { display: none; }
+.hamster.wear-ribbon .acc-ribbon,
+.hamster.wear-pin .acc-pin,
+.hamster.wear-glasses .acc-glasses,
+.hamster.wear-crown .acc-crown { display: inline; }
+.ribbon { fill: #ff7aa8; }
+.ribbon-knot { fill: #e85a8c; }
+.petals circle { fill: #ffc933; }
+.pin-center { fill: #7a4a26; }
+.lens { fill: rgba(255, 255, 255, 0.28); stroke: #4a3426; stroke-width: 2.6; }
+.frame { fill: none; stroke: #4a3426; stroke-width: 2.6; stroke-linecap: round; }
+.crown { fill: #ffcc33; stroke: #e0a400; stroke-width: 1.5; stroke-linejoin: round; }
+.gem { fill: #ff5a6e; }
+.gem.blue { fill: #4aa8ff; }
+
+/* ── 기한이 오늘인 일이 있으면 메모지를 들고 동동 ── */
+.memo-paper { display: none; }
+.paper { fill: #fff; stroke: #d9c7b2; stroke-width: 1.2; }
+.paper-line { stroke: #c9b49e; stroke-width: 1.6; stroke-linecap: round; }
+.paper-alert { fill: #e5484d; }
+.hamster.urgent .memo-paper { display: inline; }
+.hamster.urgent .seed { display: none; }
+.hamster.urgent .body-group { animation: fidget 2.4s ease-in-out infinite; }
+@keyframes fidget {
+  0%, 60%, 100% { transform: translateY(0); }
+  66% { transform: translateY(-6px); } 72% { transform: translateY(0); }
+  78% { transform: translateY(-5px); } 84% { transform: translateY(0); }
+}
+
+/* ── 볼이 꽉 찼어요: 부들부들 ── */
+.hamster.full .body-group { animation: tremble 0.7s linear; }
+@keyframes tremble {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2.5px) rotate(-1deg); }
+  20%, 40%, 60%, 80% { transform: translateX(2.5px) rotate(1deg); }
+}
+
+/* ── 회의 중 끄덕끄덕 ── */
+.hamster.nod .body-group { animation: nod 0.5s ease-in-out; }
+@keyframes nod { 40% { transform: translateY(3px) rotate(-3deg); } 70% { transform: translateY(-1px) rotate(1deg); } }
+
+/* ── 많이 쓰다듬으면 발라당 ── */
+.hamster.flop .body-group { animation: flop 2.8s cubic-bezier(.4,1.4,.5,1); }
+@keyframes flop {
+  0% { transform: rotate(0); }
+  18%, 80% { transform: translate(-6px, 8px) rotate(-78deg); }
+  25%, 35%, 45%, 55%, 65% { transform: translate(-6px, 8px) rotate(-74deg); }
+  30%, 40%, 50%, 60%, 70% { transform: translate(-6px, 8px) rotate(-82deg); }
+  100% { transform: rotate(0); }
+}
+.hamster.flop .eye { animation: none; transform: scaleY(0.25); }
+
+/* ── 졸린 콩이 (밤 11시~새벽 5시) ── */
+.hamster.sleepy .eye { animation: none; transform: scaleY(0.1); }
+.hamster.sleepy .body-group { animation: doze 4.5s ease-in-out infinite; }
+@keyframes doze { 0%, 100% { transform: rotate(0); } 45%, 55% { transform: translateY(3px) rotate(4deg); } }
+.zzz { position: absolute; top: 46px; left: calc(50% + 46px); display: none; font-weight: 800; color: #8a7ad8; pointer-events: none; }
+.hero.sleepy .zzz { display: block; }
+.zzz span { position: absolute; opacity: 0; animation: zfloat 3s ease-in infinite; }
+.zzz span:nth-child(1) { font-size: 18px; }
+.zzz span:nth-child(2) { font-size: 14px; animation-delay: 1s; }
+.zzz span:nth-child(3) { font-size: 11px; animation-delay: 2s; }
+@keyframes zfloat { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(22px, -34px); opacity: 0; } }
+
+/* ── 쳇바퀴 ── */
+.hamster-btn { position: relative; z-index: 1; }
+.wheel { position: absolute; width: 176px; height: 176px; top: 30px; left: 50%; margin-left: -88px; display: none; z-index: 0; }
+.hero.running .wheel { display: block; animation: spin 0.7s linear infinite; }
+.wheel-rim { fill: none; stroke: #c9a27a; stroke-width: 6; }
+.wheel-rim.thin { stroke-width: 2; stroke-dasharray: 6 8; }
+.wheel-spokes path { stroke: #d8b896; stroke-width: 3; }
+.wheel-hub { fill: #c9a27a; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hamster.running .body-group { animation: run-bob 0.22s ease-in-out infinite; }
+@keyframes run-bob { 50% { transform: translateY(-5px) rotate(-3deg); } }
+
+/* ── 날아다니는 것들 (씨앗·하트·메모) ── */
+.fx { position: absolute; left: 0; top: 0; margin: -8px 0 0 -6px; pointer-events: none; z-index: 5; will-change: transform, opacity; line-height: 1; }
+.fx.heart { color: #ff6b8b; font-size: 16px; font-weight: 800; }
 
 /* ── 메모 쓰기 ── */
 .composer { padding: 10px 14px 6px; flex: none; }
@@ -512,6 +618,7 @@ button:disabled { cursor: default; }
 .m-item .del { opacity: 0.6; margin-right: 6px; }
 .m-item:hover .del { opacity: 1; }
 
+.closet .m-sub { font-weight: 500; font-size: 11px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

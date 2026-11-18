@@ -24,6 +24,16 @@
 
   <section class="hero">
     <div class="bubble" id="bubble" role="status" aria-live="polite">안녕하세요!</div>
+    <!-- 할 일을 다 끝내면 콩이가 달리는 쳇바퀴 -->
+    <svg class="wheel" viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="92" class="wheel-rim" />
+      <circle cx="100" cy="100" r="80" class="wheel-rim thin" />
+      <g class="wheel-spokes">
+        <path d="M100 8 L100 192 M8 100 L192 100 M35 35 L165 165 M165 35 L35 165" />
+      </g>
+      <circle cx="100" cy="100" r="9" class="wheel-hub" />
+    </svg>
+    <div class="zzz" aria-hidden="true"><span>Z</span><span>z</span><span>z</span></div>
     <button class="hamster-btn" id="hamster" title="콩이를 쓰다듬기" aria-label="햄스터 콩이">
       <svg class="hamster" viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg">
         <ellipse class="shadow" cx="100" cy="158" rx="58" ry="8" />
@@ -49,8 +59,30 @@
           <g class="whiskers">
             <path d="M74 92 L52 88 M74 96 L52 98" /><path d="M126 92 L148 88 M126 96 L148 98" />
           </g>
-          <!-- 앞발과 해바라기씨 -->
+          <!-- 꾸미기 (해바라기씨를 모으면 열림) -->
+          <g class="acc acc-ribbon">
+            <path d="M126 44 L112 34 L114 52 Z M126 44 L140 34 L138 52 Z" class="ribbon" />
+            <circle cx="126" cy="44" r="4.5" class="ribbon-knot" />
+          </g>
+          <g class="acc acc-pin">
+            <g class="petals"><circle cx="70" cy="40" r="5" /><circle cx="80" cy="40" r="5" /><circle cx="75" cy="32" r="5" /><circle cx="75" cy="48" r="5" /><circle cx="69" cy="34" r="4.5" /><circle cx="81" cy="34" r="4.5" /><circle cx="69" cy="46" r="4.5" /><circle cx="81" cy="46" r="4.5" /></g>
+            <circle cx="75" cy="40" r="5.5" class="pin-center" />
+          </g>
+          <g class="acc acc-glasses">
+            <circle cx="80" cy="80" r="11" class="lens" /><circle cx="120" cy="80" r="11" class="lens" />
+            <path d="M91 79 Q100 74 109 79 M69 78 L58 74 M131 78 L142 74" class="frame" />
+          </g>
+          <g class="acc acc-crown">
+            <path d="M80 50 L80 30 L90 40 L100 24 L110 40 L120 30 L120 50 Z" class="crown" />
+            <circle cx="100" cy="42" r="3" class="gem" /><circle cx="87" cy="45" r="2.2" class="gem blue" /><circle cx="113" cy="45" r="2.2" class="gem blue" />
+          </g>
+          <!-- 앞발과 해바라기씨 (기한이 오늘인 일이 있으면 메모지를 든다) -->
           <g class="seed"><ellipse cx="100" cy="124" rx="7" ry="11" class="seed-shell" /><path d="M100 115 L100 133" class="seed-line" /></g>
+          <g class="memo-paper">
+            <rect x="89" y="110" width="22" height="26" rx="2" class="paper" />
+            <path d="M93 117 L107 117 M93 122 L107 122 M93 127 L103 127" class="paper-line" />
+            <circle cx="107" cy="112" r="3.5" class="paper-alert" />
+          </g>
           <ellipse cx="88" cy="126" rx="7" ry="6" class="paw" />
           <ellipse cx="112" cy="126" rx="7" ry="6" class="paw" />
           <!-- 뒷발 -->
@@ -59,7 +91,14 @@
         </g>
       </svg>
     </button>
-    <div class="pouch-count" id="pouch-count">볼주머니 0개</div>
+    <div class="pouch-row">
+      <span class="pouch-count" id="pouch-count">볼주머니 0개</span>
+      <button class="seed-count" id="seed-count" title="모은 해바라기씨 · 눌러서 꾸미기">🌻 0</button>
+    </div>
+    <div class="closet" id="closet" hidden>
+      <div class="closet-title">콩이 꾸미기 <span class="m-sub">할 일을 끝내면 해바라기씨가 모여요</span></div>
+      <div class="closet-items" id="closet-items"></div>
+    </div>
   </section>
 
   <nav class="modes" role="tablist" aria-label="화면">
