@@ -110,7 +110,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   transform-box: fill-box;
   transform-origin: center;
 }
-.cheek { transform: scale(var(--cheek-scale, 1)); transition: transform 0.35s cubic-bezier(.3,1.6,.5,1); }
+/* 볼은 바깥쪽으로 부푼다 (안쪽 가장자리를 기준으로 커져서 눈을 가리지 않음) */
+.cheek { transform: scale(var(--cheek-scale, 1)); transition: transform 0.45s cubic-bezier(.3,1.6,.5,1); }
+.cheek-l { transform-origin: 85% 45%; }
+.cheek-r { transform-origin: 15% 45%; }
 .ear { animation: ear-wiggle 6s infinite; }
 .ear-r { animation-delay: 0.15s; }
 .eye { animation: blink 4.6s infinite; }
@@ -121,7 +124,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hamster.peek .eyes { transform: translateY(3px); }
 
 /* 메모를 넣을 때: 볼이 빵빵해지고 씨앗이 사라진다 */
-.hamster.puff .cheek { transform: scale(calc(var(--cheek-scale, 1) * 1.45)); }
+.hamster.puff .cheek { transform: scale(calc(var(--cheek-scale, 1) * 1.25)); }
 .hamster.puff .seed { animation: gulp 0.6s ease-in forwards; }
 
 .hamster.hop .body-group { animation: hop 0.55s cubic-bezier(.3,1.4,.5,1); }
