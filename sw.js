@@ -1,5 +1,5 @@
 // 앱 화면 파일을 저장해 두어 인터넷이 없어도 메모장은 열리게 한다. (받아 적기는 인터넷 필요)
-const CACHE = 'hamster-0.5.0-mwmrfo17';
+const CACHE = 'hamster-0.5.1-mwmsqnbj';
 const SHELL = ['./', 'index.html', 'styles.css', 'web.css', 'renderer.js', 'basic-minutes.js', 'xlsx-lite.js', 'meeting-web.js',
   'register-sw.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

@@ -690,3 +690,8 @@ button:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ⭐ 맨 위 고정 */
+.del.star:hover { color: #f2b01e; }
+.del.star.on { opacity: 1; color: #f2b01e; }
+.note.pinned { box-shadow: inset 3px 0 0 #f2b01e, 0 1px 3px var(--shadow); }

@@ -343,12 +343,15 @@
 
   function visibleNotes() {
     const q = state.query.trim().toLowerCase();
-    return state.notes.filter((n) => {
+    const shown = state.notes.filter((n) => {
       if (state.settings.filter === 'todo' && n.done) return false;
       if (state.settings.filter === 'done' && !n.done) return false;
       if (q && !n.text.toLowerCase().includes(q)) return false;
       return true;
     });
+    // ⭐ 고정한 할 일은 맨 위 (끝낸 일은 제자리, 다시 할 일로 돌리면 또 위로)
+    const top = (n) => (n.pinned && !n.done ? 0 : 1);
+    return shown.map((n, i) => [n, i]).sort((a, b) => top(a[0]) - top(b[0]) || a[1] - b[1]).map(([n]) => n);
   }
 
   function renderTabs() {
@@ -398,8 +401,16 @@
   function noteEl(n) {
     const color = COLORS.find((c) => c.id === n.color) || COLORS[0];
     const el = document.createElement('article');
-    el.className = 'note' + (n.done ? ' done' : '');
+    el.className = 'note' + (n.done ? ' done' : '') + (n.pinned && !n.done ? ' pinned' : '');
     el.style.setProperty('--note-bg', color.bg);
+
+    // ⭐ 중요한 할 일을 맨 위에 고정
+    const star = document.createElement('button');
+    star.className = 'del star' + (n.pinned ? ' on' : '');
+    star.title = n.pinned ? '맨 위 고정 풀기' : '중요! 맨 위에 고정';
+    star.setAttribute('aria-pressed', String(!!n.pinned));
+    star.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+    star.addEventListener('click', () => togglePinned(n.id));
 
     const check = document.createElement('button');
     check.className = 'check';
@@ -416,7 +427,7 @@
     text.addEventListener('dblclick', () => startEdit(text, n.id));
     const meta = document.createElement('div');
     meta.className = 'note-meta';
-    meta.textContent = fmt(n.createdAt) + (n.editedAt ? ' · 고침' : '') + (n.sticky ? ' · 바탕화면에 붙임' : '');
+    meta.textContent = fmt(n.createdAt) + (n.editedAt ? ' · 고침' : '') + (n.sticky ? ' · 바탕화면에 붙임' : '') + (n.pinned && !n.done ? ' · 맨 위 고정' : '');
     body.append(text, meta);
 
     const del = document.createElement('button');
@@ -442,8 +453,9 @@
       // 마우스 오른쪽 버튼 메뉴
       el.addEventListener('contextmenu', async (ev) => {
         ev.preventDefault();
-        const choice = await window.api.noteMenu({ sticky: !!n.sticky, done: !!n.done });
-        if (choice === 'stick') setSticky(true);
+        const choice = await window.api.noteMenu({ sticky: !!n.sticky, done: !!n.done, pinned: !!n.pinned });
+        if (choice === 'pin') togglePinned(n.id);
+        else if (choice === 'stick') setSticky(true);
         else if (choice === 'unstick') setSticky(false);
         else if (choice === 'show') stickyApi.focus(n.id);
         else if (choice === 'done') toggleDone(n.id);
@@ -451,11 +463,22 @@
         else if (choice === 'copy') { window.api.copy(n.text); say('글을 복사했어요!'); }
         else if (choice === 'delete') removeNote(n.id);
       });
-      el.append(check, body, stick, del);
+      el.append(check, body, star, stick, del);
     } else {
-      el.append(check, body, del);
+      el.append(check, body, star, del);
     }
     return el;
+  }
+
+  function togglePinned(id) {
+    const n = state.notes.find((x) => x.id === id);
+    if (!n) return;
+    n.pinned = !n.pinned;
+    render();
+    scheduleSave();
+    act('hop', 600);
+    if (n.pinned) say(n.done ? '중요 표시했어요! 다시 할 일로 돌리면 맨 위에 둘게요' : pick(['중요한 일은 맨 위에 둘게요!', '⭐ 꼭 기억할게요!', '제일 위에 꽂아 뒀어요!']));
+    else say('고정을 풀었어요');
   }
 
   // ── 동작 ──
