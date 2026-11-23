@@ -398,11 +398,31 @@
     for (const n of items) list.appendChild(noteEl(n));
   }
 
+  // 별·완료·삭제로 목록 순서가 바뀐 직후에는 잠깐 버튼을 막는다.
+  // 핸드폰에서 톡톡 두 번 누르면 두 번째 터치가 그 자리로 밀려 들어온 "다른 메모"의 버튼에 맞기 때문
+  let listLockUntil = 0;
+  function lockList(ms = 700) { listLockUntil = Date.now() + ms; }
+  list.addEventListener('click', (e) => {
+    if (Date.now() < listLockUntil && e.target.closest('button')) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+  // 자리를 옮긴 메모를 반짝 표시해서 어떤 메모가 움직였는지 보이게
+  function flashNote(id) {
+    const el = list.querySelector(`.note[data-id="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.classList.remove('moved');
+    void el.offsetWidth;
+    el.classList.add('moved');
+  }
+
   function noteEl(n) {
     const color = COLORS.find((c) => c.id === n.color) || COLORS[0];
     const el = document.createElement('article');
     el.className = 'note' + (n.done ? ' done' : '') + (n.pinned && !n.done ? ' pinned' : '');
     el.style.setProperty('--note-bg', color.bg);
+    el.dataset.id = n.id;
 
     // ⭐ 중요한 할 일을 맨 위에 고정
     const star = document.createElement('button');
@@ -474,7 +494,9 @@
     const n = state.notes.find((x) => x.id === id);
     if (!n) return;
     n.pinned = !n.pinned;
+    lockList();
     render();
+    flashNote(id);
     scheduleSave();
     act('hop', 600);
     if (n.pinned) say(n.done ? '중요 표시했어요! 다시 할 일로 돌리면 맨 위에 둘게요' : pick(['중요한 일은 맨 위에 둘게요!', '⭐ 꼭 기억할게요!', '제일 위에 꽂아 뒀어요!']));
@@ -521,6 +543,7 @@
     if (n.done) n.doneAt = Date.now(); // 퇴근 전 알림의 "오늘 끝낸 일" 세기용
     else delete n.doneAt;
     const unlocked = n.done ? awardSeed(n) : null;
+    lockList();
     render();
     scheduleSave();
     stayAwake();
@@ -555,6 +578,7 @@
     if (idx < 0) return;
     lastRemoved = { note: state.notes[idx], idx };
     state.notes.splice(idx, 1);
+    lockList();
     render();
     scheduleSave();
     act('wiggle', 500);

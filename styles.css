@@ -695,3 +695,8 @@ button:disabled { cursor: default; }
 .del.star:hover { color: #f2b01e; }
 .del.star.on { opacity: 1; color: #f2b01e; }
 .note.pinned { box-shadow: inset 3px 0 0 #f2b01e, 0 1px 3px var(--shadow); }
+
+/* 자리를 옮긴 메모 반짝 */
+.note.moved { animation: note-moved 0.9s ease-out; }
+@keyframes note-moved { 0% { transform: scale(1.03); filter: brightness(1.08); box-shadow: 0 0 0 3px #f2b01e; } 100% { transform: none; } }
+.note button { touch-action: manipulation; }
